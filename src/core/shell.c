@@ -1,4 +1,5 @@
 #include "shell.h"
+#include "interpreter.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +9,7 @@
 #include "../memory/lru.h"
 #include "../memory/memory.h"
 #include "../scheduling/ready_queue.h"
-#include "interpreter.h"
+#include "../file_system/file_system.h"
 
 int main(int argc, char* argv[]) {
     // Set stdout to unbuffered to avoid undefined printing behaviour in batch
@@ -38,6 +39,7 @@ int main(int argc, char* argv[]) {
     }
 
     mem_init();
+    fs_init();
 
     while (1) {
         // omit printing prompt char if we are in batch mode
