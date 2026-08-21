@@ -20,17 +20,6 @@ include_directories(
 
 # Create executable
 add_executable(picoshell
-    src/core/shell.c
-    src/core/interpreter.c
-    src/memory/memory.c
-    src/memory/frame_store.c
-    src/memory/variable_store.c
-    src/memory/lru.c
-    src/scheduling/pcb.c
-    src/scheduling/ready_queue.c
-    src/scheduling/scheduler.c
-    src/utils/badcommand.c
-    src/utils/utils.c
     src/commands/echo.c
     src/commands/exec.c
     src/commands/help.c
@@ -43,6 +32,18 @@ add_executable(picoshell
     src/commands/quit.c
     src/commands/run.c
     src/commands/set.c
+    src/core/shell.c
+    src/core/interpreter.c
+    src/file_system/file_system.c
+    src/memory/memory.c
+    src/memory/frame_store.c
+    src/memory/variable_store.c
+    src/memory/lru.c
+    src/scheduling/pcb.c
+    src/scheduling/ready_queue.c
+    src/scheduling/scheduler.c
+    src/utils/badcommand.c
+    src/utils/utils.c
 )
 
 # Gather user-defined flags
