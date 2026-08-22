@@ -1,5 +1,4 @@
-#include "fs_specs.h"
-#include "block_layer.h"
+#include "file_system.h"
 
 typedef struct dir_entry {
     char filename[MAX_FILENAME_LEN];

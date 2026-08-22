@@ -1,5 +1,5 @@
 #include "disk.h"
-#include "fs_specs.h"
+#include "file_system.h"
 #include "inode.h"
 #include "block_layer.h"
 
