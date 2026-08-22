@@ -3,14 +3,14 @@
 #include <stdio.h>
 
 int data_bitmap_find_available_block(block* bitmap);
-void data_bitmap_alloc(block* bitmap, int data_block);
-void data_bitmap_free(block* bitmap, int data_block);
+int data_bitmap_alloc(block* bitmap, int data_block);
+int data_bitmap_free(block* bitmap, int data_block);
 
 /*
  * this function allocates a data block into the file system. it
  * finds an available data block and performs the writes to disk.
  *
- * returns the block number if allocated, else -1.
+ * returns data block number if allocated, else -1.
  */
 int data_block_alloc() {
     // load data bitmap block and find block num
@@ -24,7 +24,10 @@ int data_block_alloc() {
     }
 
     // update bitmap
-    data_bitmap_alloc(&bitmap_block, data_block);
+    int errCode = data_bitmap_alloc(&bitmap_block, data_block);
+    if (errCode != 0) {
+        return -1;
+    }
 
     // write data bitmap block back
     block_write(&bitmap_block, DATA_BITMAP_BLOCK);
@@ -37,7 +40,7 @@ int data_block_alloc() {
  * this function frees a data block from the file system.
  * it will clear the data block entry from the bitmap.
  *
- * returns the block number in case of success, -1 otherwise.
+ * returns data block number in case of success, else -1.
  */
 int data_block_free(int data_block) {
     // load data bitmap block
@@ -45,7 +48,10 @@ int data_block_free(int data_block) {
     block_read(&bitmap_block, DATA_BITMAP_BLOCK);
 
     // update bitmap
-    data_bitmap_free(&bitmap_block, data_block);
+    int errCode = data_bitmap_free(&bitmap_block, data_block);
+    if (errCode != 0) {
+        return -1;
+    }
 
     // write back to disk
     block_write(&bitmap_block, data_block);
@@ -87,30 +93,38 @@ int data_bitmap_find_available_block(block* bitmap) {
 
 /*
  * modifies the data bitmap to claim a data block.
+ *
+ * returns 0 on success, -1 on failure.
  */
-void data_bitmap_alloc(block* bitmap, int data_block) {
+int data_bitmap_alloc(block* bitmap, int data_block) {
     int byte_ix = data_block / 8;
     int bit_ix = data_block % 8;
 
     if ((*bitmap)[byte_ix] & (1 << bit_ix)) {
         fprintf(stderr, "Warning: block number %d is already taken\n", data_block);
-        return;
+        return -1;
     }
 
     (*bitmap)[byte_ix] |= (1 << bit_ix);
+
+    return 0;
 }
 
 /*
  * modifies the data bitmap to release a data block.
+ *
+ * returns 0 on success, -1 on failure.
  */
-void data_bitmap_free(block* bitmap, int data_block) {
+int data_bitmap_free(block* bitmap, int data_block) {
     int byte_ix = data_block / 8;
     int bit_ix = data_block % 8;
 
     if (((*bitmap)[byte_ix] & (1 << bit_ix)) == 0) {
         fprintf(stderr, "Warning: block number %d is already free\n", data_block);
-        return;
+        return -1;
     }
 
     (*bitmap)[byte_ix] &= ~(1 << bit_ix);
+
+    return 0;
 }
