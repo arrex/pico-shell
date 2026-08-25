@@ -1,7 +1,7 @@
-#include "../memory/memory.h"
-
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "../memory/memory.h"
 
 int quit() {
     printf("Bye!\n");
