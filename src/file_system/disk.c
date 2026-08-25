@@ -1,8 +1,8 @@
 #include "disk.h"
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 // our own way of emulating the disk
 uint8_t disk[DISK_SIZE] = {0};
@@ -52,7 +52,5 @@ int disk_write(const void* buf, int size, int offset) {
 }
 
 #ifdef PICOSHELL_TESTING
-void disk_reset(void) {
-    memset(disk, 0, DISK_SIZE);
-}
+void disk_reset(void) { memset(disk, 0, DISK_SIZE); }
 #endif
