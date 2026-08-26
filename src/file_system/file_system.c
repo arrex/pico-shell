@@ -1,74 +1,124 @@
 #include "file_system.h"
+#include "disk.h"
+#include "inode.h"
+#include "block_layer.h"
+#include "data_block.h"
+#include "directory.h"
 
-#include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <string.h>
 
-// our own grossly simplified abstraction of the hardware disk
-uint8_t disk[NUM_BLOCKS * BLOCK_SIZE] = {0};
-
-void superblock_init();
-void inode_table_init();
-int get_block_base_address(int block);
-void write_disk(int base_address, const void* data, int size);
+int superblock_init();
+int root_dir_init();
 
 void fs_init() {
-    // init fs components
-    superblock_init(); // block 0
-    // block 1: inode bitmap
-    // block 2: data bitmap
-    inode_table_init(); // next couple of blocks
-    // rest of blocks belong to data region
+    int errCode;
+
+    errCode = superblock_init();
+    if (errCode != 0) {
+        // print smth
+        return;
+    }
+
+    errCode = root_dir_init();
+    if (errCode != 0) {
+        // print smth
+        return;
+    }
 }
 
-void superblock_init() {
+int fs_create(const char* path, enum file_type type) {
+    // read root inode to see where data block is
+    uint8_t buffer[sizeof(struct inode)];
+    int base_address = INODE_TABLE_START * BLOCK_SIZE + ROOT_INODE * INODE_SIZE;
+    disk_read(buffer, base_address, sizeof(struct inode));
+
+    // read root inode's data block to see entries
+    // recursively do the same until we hit end of path
+    // if already exists -> error
+    // find available inode from bitmap
+    // if no inode available -> error
+    // find available data block
+    // if no data block -> error
+    // allocate new inode
+    // allocate new data block
+
+    return 0;
+}
+
+int superblock_init() {
     struct superblock superblock = {
         .file_system_type = FS_TYPE,
         .num_inodes = NUM_INODES,
-        .inodes_table_start = 3,
-        // -3 encompasses superblock, inode bitmap, and data bitmap
-        .num_data_blocks = NUM_BLOCKS - ((NUM_INODES * INODE_SIZE) / BLOCK_SIZE) - 3,
+        .inodes_table_start = INODE_TABLE_START,
+        .num_data_blocks = NUM_DATA_BLOCKS,
         .block_size = BLOCK_SIZE
     };
+    block buf = {0};
+    memcpy(buf, &superblock, sizeof(struct superblock));
+    block_write(&buf, 0);
 
-    // write to first block
-    int base_address = get_block_base_address(0);
-    write_disk(0, &superblock, sizeof(struct superblock));
+    return 0;
 }
 
-void inode_table_init() {
-    struct inode inode_table[NUM_INODES];
-    for (int i = 0; i < NUM_INODES; i++) {
-        struct inode inode = {
-            .file_type = UNUSED_T,
-            .size = INODE_SIZE,
-            .blocks_occupied = 0,
-            // init w sentinels
-            .direct = {-1},
-            .indirect = -1
-        };
+int root_dir_init() {
+    int errCode;
+    // bootstrap root dir
+    int block_num = data_block_alloc();
 
-        inode_table[i] = inode;
+    if (block_num == -1) {
+        // something bad happened...
+        return -1;
     }
 
-    int inode_table_blocks = (NUM_INODES * INODE_SIZE) / BLOCK_SIZE;
-    for (int block = 0; block < inode_table_blocks; block++) {
-        // first 3 blocks for superblock and bitmaps
-        int base_address = get_block_base_address(3 + block);
-        int inode_ix = block * (BLOCK_SIZE / INODE_SIZE);
-        write_disk(base_address, &inode_table[inode_ix], BLOCK_SIZE);
+    struct extent ext = {
+        .logical_start = 0,
+        .physical_start = DATA_REGION_START + block_num,
+        .block_count = 1
+    };
+
+    struct inode root_inode = {
+        .file_type = DIRECTORY_T,
+        .parent_inode = ROOT_INODE, // self reference
+        .size = 0,
+        .blocks_occupied = 1,
+        .extent_count = 1,
+        .extents = {ext}
+    };
+
+    errCode = inode_alloc(&root_inode);
+    if (errCode != 0) {
+        // something bad happened....
+        // maybe we should check to ensure that inode num is 0 too
+        // rollback
+        data_block_free(block_num);
+        return -1;
     }
-}
 
-int get_block_base_address(int block) {
-    return block * BLOCK_SIZE;
-}
+    struct dir_entry curr_dir = {
+        .filename = ".",
+        .inode = ROOT_INODE,
+    };
 
-void write_disk(int base_address, const void* data, int size) {
-    if (size > BLOCK_SIZE) {
-        printf("Warning: size %d exceeds block size\n", size);
+    errCode = dir_add(ROOT_INODE, &curr_dir);
+    if (errCode != 0) {
+        // rollback
+        inode_free(ROOT_INODE);
+        data_block_free(block_num);
     }
 
-    memcpy(&disk[base_address], data, size);
+    struct dir_entry par_dir = {
+        .filename = "..",
+        .inode = ROOT_INODE,
+    };
+
+    errCode = dir_add(ROOT_INODE, &par_dir);
+    if (errCode != 0) {
+        // rollback
+        inode_free(ROOT_INODE);
+        data_block_free(block_num);
+    }
+
+    // success
+    return 0;
 }
