@@ -1,0 +1,15 @@
+// DATA_BLOCK_ALLOC
+void test_data_block_alloc_allocates_first_free_slot(void);
+void test_data_block_alloc_uses_lowest_available_slot(void);
+void test_data_block_alloc_can_fill_data_region(void);
+void test_data_block_alloc_fails_when_data_region_full(void);
+// DATA_BLOCK_FREE
+void test_data_block_free_marks_block_available(void);
+void test_data_block_free_fails_when_block_already_free(void);
+void test_data_block_free_invalid_inputs(void);
+// DATA_BLOCK_READ
+void test_data_block_read_reads_block_at_requested_slot(void);
+void test_data_block_read_invalid_inputs(void);
+// DATA_BLOCK_WRITE
+void test_data_block_write_updates_only_requested_block(void);
+void test_data_block_write_invalid_inputs(void);
