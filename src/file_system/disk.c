@@ -32,6 +32,11 @@ int disk_read(void* buf, int size, int offset) {
     return 0;
 }
 
+/*
+ * performs a write operation on our disk.
+ *
+ * returns 0 in case of success, else -1.
+ */
 int disk_write(const void* buf, int size, int offset) {
     if (buf == NULL) {
         fprintf(stderr, "Warning: input buffer is null\n");
