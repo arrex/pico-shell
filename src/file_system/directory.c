@@ -1,13 +1,13 @@
 #include "directory.h"
-#include "file_system.h"
-#include "inode.h"
-#include "data_block.h"
-#include "block_layer.h"
-
-#include "../utils/utils.h"
 
 #include <stdio.h>
 #include <string.h>
+
+#include "../utils/utils.h"
+#include "block_layer.h"
+#include "data_block.h"
+#include "file_system.h"
+#include "inode.h"
 
 int dir_add(int inode_num, struct dir_entry* new_entry) {
     struct inode inode;
@@ -18,7 +18,8 @@ int dir_add(int inode_num, struct dir_entry* new_entry) {
         return -1;
     }
 
-    int blocks_needed = ceili(inode.size + sizeof(struct dir_entry), BLOCK_SIZE);
+    int blocks_needed =
+        ceili(inode.size + sizeof(struct dir_entry), BLOCK_SIZE);
     // need to allocate a new block
     if (inode.blocks_occupied < blocks_needed) {
         int data_block = data_block_alloc();
@@ -35,15 +36,15 @@ int dir_add(int inode_num, struct dir_entry* new_entry) {
             last->block_count++;
         } else if (inode.extent_count < MAX_EXTENTS) {
             // need to create a new extent
-            inode.extents[inode.extent_count] = (struct extent){
-                .logical_start = inode.blocks_occupied,
-                .physical_start = phys_block,
-                .block_count = 1
-            };
+            inode.extents[inode.extent_count] =
+                (struct extent){.logical_start = inode.blocks_occupied,
+                                .physical_start = phys_block,
+                                .block_count = 1};
 
             inode.extent_count++;
         } else {
-            fprintf(stderr, "Error: could not update extent list of inode %d", inode_num);
+            fprintf(stderr, "Error: could not update extent list of inode %d",
+                    inode_num);
             // rollback
             data_block_free(data_block);
             return -1;

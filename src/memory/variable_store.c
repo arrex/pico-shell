@@ -1,8 +1,9 @@
 #include "variable_store.h"
-#include "memory.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "memory.h"
 
 struct variable_store* vstore_init() {
     struct variable_store* var_store = malloc(sizeof(struct variable_store));
@@ -15,9 +16,7 @@ struct variable_store* vstore_init() {
     return var_store;
 }
 
-void vstore_deinit(struct variable_store* vstore) {
-    free(vstore);
-}
+void vstore_deinit(struct variable_store* vstore) { free(vstore); }
 
 /*
  * Get value of a variable from the store based on input key
@@ -40,7 +39,8 @@ char* vstore_get(struct variable_store* var_store, char* key) {
  * or updates the current variable assignment. It also updates shell
  *  memory accordingly.
  */
-void vstore_set(struct variable_store* var_store, char* var_in, char* value_in) {
+void vstore_set(struct variable_store* var_store, char* var_in,
+                char* value_in) {
     // Linear search variable table for given variable name
     for (int i = 0; i < VAR_STORE_SIZE; i++) {
         struct var_table_entry* entry = &var_store->var_table[i];
