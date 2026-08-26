@@ -83,7 +83,8 @@ int data_block_read(block* out, int data_block) {
 }
 
 /*
- * writes buffer to a specified data block on disk.
+ * writes buffer to a specified data block on disk. ensure that the
+ * data block being written to has been allocated.
  *
  * returns 0 in case of success, else -1.
  */
