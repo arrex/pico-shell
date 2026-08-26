@@ -16,3 +16,5 @@ typedef struct inode {
 
 int inode_alloc(struct inode* inode);
 int inode_free(int slot);
+int inode_read(struct inode* out, int slot);
+int inode_write(struct inode* in, int slot);
