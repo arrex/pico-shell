@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../utils/utils.h"
 #include "block_layer.h"
 #include "file_system.h"
 
@@ -18,70 +19,54 @@ int inode_bitmap_free(block* bitmap, int slot);
  *
  * returns root inode slot if allocated, else -1.
  */
-int inode_root_alloc(struct inode* inode, int root_inode_slot) {
+int inode_root_alloc(struct inode* root_inode, int root_inode_slot) {
     // load inode bitmap block and claim slot
     block bitmap_block;
-    block_read(&bitmap_block, INODE_BITMAP_BLOCK);
-
-    // try claiming root inode slot
-    int errCode = inode_bitmap_alloc(&bitmap_block, root_inode_slot);
-    if (errCode != 0) {
+    if (block_read(&bitmap_block, INODE_BITMAP_BLOCK) != 0) {
         return -1;
     }
 
-    // load inode table block
-    int block_num =
-        INODE_TABLE_START + (root_inode_slot * INODE_SIZE) / BLOCK_SIZE;
-    block table_block;
-    block_read(&table_block, block_num);
+    // try claiming root inode slot
+    if (inode_bitmap_alloc(&bitmap_block, root_inode_slot) != 0) {
+        return -1;
+    }
 
-    // write to inode table block
-    int offset =
-        INODE_SIZE * (root_inode_slot % (NUM_INODES / INODE_TABLE_BLOCKS));
-    memcpy(table_block, inode, sizeof(struct inode));
-
-    // write blocks back
-    block_write(&bitmap_block, INODE_BITMAP_BLOCK);
-    block_write(&table_block, block_num);
+    // write inode entry in table
+    if (inode_write(root_inode, root_inode_slot) != 0) {
+        return -1;
+    }
 
     return root_inode_slot;
 }
 
 /*
  * this function allocates an inode into the file system. it
- * finds an available slot and performs the writes to disk.
+ * finds an available slot and performs the writes to disk. to
+ * update an existing inode, refer to `inode_write()`.
  *
  * returns slot if allocated, else -1.
  */
 int inode_alloc(struct inode* inode) {
-    // load inode bitmap block and find slot
+    // load inode bitmap block
     block bitmap_block;
     block_read(&bitmap_block, INODE_BITMAP_BLOCK);
-    int slot = inode_bitmap_find_available_slot(&bitmap_block);
 
+    // find empty slot in inode table
+    int slot = inode_bitmap_find_available_slot(&bitmap_block);
     // no free slots
     if (slot == -1) {
         return -1;
     }
 
-    // load relevant inode table block
-    int block_num = INODE_TABLE_START + (slot * INODE_SIZE) / BLOCK_SIZE;
-    block table_block;
-    block_read(&table_block, block_num);
-
-    // write new inode to block
-    int offset = INODE_SIZE * (slot % (NUM_INODES / INODE_TABLE_BLOCKS));
-    memcpy(table_block, inode, sizeof(struct inode));
-
-    // update inode bitmap
-    int errCode = inode_bitmap_alloc(&bitmap_block, slot);
-    if (errCode != 0) {
+    // write inode entry in table
+    if (inode_write(inode, slot) != 0) {
         return -1;
     }
 
-    // write inode table and bitmap blocks back
-    block_write(&bitmap_block, INODE_BITMAP_BLOCK);
-    block_write(&table_block, block_num);
+    // update inode bitmap
+    if (inode_bitmap_alloc(&bitmap_block, slot) != 0) {
+        return -1;
+    }
 
     // success
     return slot;
@@ -96,16 +81,14 @@ int inode_alloc(struct inode* inode) {
 int inode_free(int slot) {
     // load inode bitmap block
     block bitmap_block;
-    block_read(&bitmap_block, INODE_BITMAP_BLOCK);
-
-    // update bitmap
-    int errCode = inode_bitmap_free(&bitmap_block, slot);
-    if (errCode != 0) {
+    if (block_read(&bitmap_block, INODE_BITMAP_BLOCK) != 0) {
         return -1;
     }
 
-    // write back to disk
-    block_write(&bitmap_block, INODE_BITMAP_BLOCK);
+    // update bitmap
+    if (inode_bitmap_free(&bitmap_block, slot) != 0) {
+        return -1;
+    }
 
     return slot;
 }
@@ -129,7 +112,9 @@ int inode_read(struct inode* out, int slot) {
 }
 
 /*
- * writes an inode struct to disk at a specified slot.
+ * writes an inode struct to disk at a specified slot. this
+ * function is meant to update an existing inode. refer to
+ * `inode_alloc()` to write a new entry to the file system.
  *
  * returns 0 in case of success, else -1
  */
@@ -157,9 +142,9 @@ int inode_write(struct inode* in, int slot) {
  * returns -1.
  */
 int inode_bitmap_find_available_slot(block* bitmap) {
-    // ceil(n / k) = (n + k - 1) / k
-    // k = 8 since 1 byte = 8 bits
-    for (int i = 0; i < (NUM_INODES + 7) / 8; i++) {
+    // we want ceil(n, k) where n = num of inodes and k = 8 since 1 byte = 8
+    // bits
+    for (int i = 0; i < ceili(NUM_INODES, 8); i++) {
         uint8_t byte = (*bitmap)[i];
 
         for (int j = 0; j < 8; j++) {
@@ -197,6 +182,11 @@ int inode_bitmap_alloc(block* bitmap, int slot) {
 
     (*bitmap)[byte_ix] |= (1 << bit_ix);
 
+    // write back to disk
+    if (block_write(bitmap, INODE_BITMAP_BLOCK) != 0) {
+        return -1;
+    }
+
     return 0;
 }
 
@@ -215,6 +205,11 @@ int inode_bitmap_free(block* bitmap, int slot) {
     }
 
     (*bitmap)[byte_ix] &= ~(1 << bit_ix);
+
+    // write back to disk
+    if (block_write(bitmap, INODE_BITMAP_BLOCK) != 0) {
+        return -1;
+    }
 
     return 0;
 }
