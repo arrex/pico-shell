@@ -1,10 +1,28 @@
-// file system specs
+#pragma once
+
+// our own extent-based fs type
+#define FS_TYPE "my_ext"
+
+#define BLOCK_SIZE 2048 // 2kB
 #define NUM_BLOCKS 64
-#define BLOCK_SIZE 4096 // 4kB
-#define NUM_INODES 80 // 16 inodes per block w 5 blocks
-#define INODE_SIZE 256 // 256B
-#define NUM_DIRECT_BLOCKS 5
-#define FS_TYPE "my_ext" // our own extent-based fs type -- 7 bytes long
+
+#define INODE_SIZE 128 // 128B
+#define NUM_INODES 80 // 16 inodes/block across 5 blocks
+#define ROOT_INODE 0
+
+// -3 encompasses superblock, inode bitmap, and data bitmap
+#define NUM_DATA_BLOCKS (NUM_BLOCKS - (NUM_INODES * INODE_SIZE) / BLOCK_SIZE - 3)
+
+// file system disk layout
+#define SUPERLOCK_BLOCK 0
+#define INODE_BITMAP_BLOCK 1
+#define DATA_BITMAP_BLOCK 2
+#define INODE_TABLE_START 3
+#define INODE_TABLE_BLOCKS 5
+#define DATA_REGION_START 8
+
+#define MAX_FILENAME_LEN 60
+#define MAX_EXTENTS 4
 
 enum file_type {
     UNUSED_T,
@@ -22,15 +40,8 @@ typedef struct superblock {
     int block_size; // in bytes
 } superblock;
 
-typedef struct inode {
-    enum file_type file_type;
-    int size;
-    int blocks_occupied;
-    int direct[NUM_DIRECT_BLOCKS];
-    int indirect; // single indirect block
-
-    // can add more metadata in the future (uid, perms, created_at,
-    // updated_at, etc.)
-} inode;
-
 void fs_init();
+int fs_create(const char* path, enum file_type type);
+void fs_delete();
+void fs_read();
+void fs_write();
