@@ -1,6 +1,7 @@
 #include "memory.h"
 
-// computes the number of frames in memory based on total memory lines and size of a frame
+// computes the number of frames in memory based on total memory lines and size
+// of a frame
 #define FRAME_TABLE_SIZE FRAME_STORE_SIZE / FRAME_SIZE
 
 typedef struct frame_table_entry {
