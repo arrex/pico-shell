@@ -1,11 +1,11 @@
-#include "file_system.h"
+#include "disk.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 // our own way of emulating the disk
-uint8_t disk[NUM_BLOCKS * BLOCK_SIZE] = {0};
+uint8_t disk[DISK_SIZE] = {0};
 
 /*
  * performs a read operation on our disk abstraction.
@@ -18,13 +18,13 @@ int disk_read(void* buf, int size, int offset) {
         return -1;
     }
 
-    if (size > sizeof(disk) - offset) {
-        fprintf(stderr, "Warning: not enough space on disk to write %d bytes with %d offset\n", size, offset);
+    if (size < 0 || size > DISK_SIZE - offset) {
+        fprintf(stderr, "Warning: invalid size %d\n", size);
         return -1;
     }
 
-    if (offset > sizeof(disk)) {
-        fprintf(stderr, "Warning: offset %d exceeds size of disk\n", offset);
+    if (offset < 0 || offset >= DISK_SIZE) {
+        fprintf(stderr, "Warning: invalid offset %d\n", offset);
         return -1;
     }
 
@@ -38,16 +38,21 @@ int disk_write(const void* buf, int size, int offset) {
         return -1;
     }
 
-    if (size > sizeof(disk) - offset) {
-        fprintf(stderr, "Warning: not enough space on disk to write %d bytes with %d offset\n", size, offset);
+    if (size < 0 || size > DISK_SIZE - offset) {
+        fprintf(stderr, "Warning: invalid size %d\n", size);
         return -1;
     }
 
-    if (offset > sizeof(disk)) {
-        fprintf(stderr, "Warning: offset %d exceeds size of disk\n", offset);
+    if (offset < 0 || offset >= DISK_SIZE) {
+        fprintf(stderr, "Warning: invalid offset %d\n", offset);
         return -1;
     }
-
     memcpy(&disk[offset], buf, size);
     return 0;
 }
+
+#ifdef PICOSHELL_TESTING
+void disk_reset(void) {
+    memset(disk, 0, DISK_SIZE);
+}
+#endif
