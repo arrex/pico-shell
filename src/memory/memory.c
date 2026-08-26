@@ -1,14 +1,14 @@
 #include "memory.h"
-#include "memory.h"
-#include "variable_store.h"
-#include "frame_store.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../scheduling/pcb.h"
+#include "frame_store.h"
 #include "lru.h"
+#include "memory.h"
+#include "variable_store.h"
 
 struct memory_manager* mem;
 
@@ -33,7 +33,6 @@ void mem_deinit() {
 
     free(mem);
 }
-
 
 char* mem_get_fstore_value(int address) {
     struct frame_store* fstore = mem->fstore;

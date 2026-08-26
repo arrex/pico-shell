@@ -1,12 +1,13 @@
-#include "disk.h"
-#include "file_system.h"
 #include "inode.h"
-#include "block_layer.h"
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "block_layer.h"
+#include "disk.h"
+#include "file_system.h"
 
 int inode_bitmap_find_available_slot(block* bitmap);
 int inode_bitmap_alloc(block* bitmap, int slot);
@@ -30,12 +31,14 @@ int inode_root_alloc(struct inode* inode, int root_inode_slot) {
     }
 
     // load inode table block
-    int block_num = INODE_TABLE_START + (root_inode_slot * INODE_SIZE) / BLOCK_SIZE;
+    int block_num =
+        INODE_TABLE_START + (root_inode_slot * INODE_SIZE) / BLOCK_SIZE;
     block table_block;
     block_read(&table_block, block_num);
 
     // write to inode table block
-    int offset = INODE_SIZE * (root_inode_slot % (NUM_INODES / INODE_TABLE_BLOCKS));
+    int offset =
+        INODE_SIZE * (root_inode_slot % (NUM_INODES / INODE_TABLE_BLOCKS));
     memcpy(table_block, inode, sizeof(struct inode));
 
     // write blocks back
