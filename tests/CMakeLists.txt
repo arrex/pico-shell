@@ -6,11 +6,13 @@ add_executable(${FILE_SYSTEM_TEST}
   ${PROJECT_SOURCE_DIR}/src/file_system/block_layer.c
   ${PROJECT_SOURCE_DIR}/src/file_system/disk.c
   ${PROJECT_SOURCE_DIR}/src/file_system/inode.c
+  ${PROJECT_SOURCE_DIR}/src/file_system/data_block.c
   ${PROJECT_SOURCE_DIR}/src/utils/utils.c
   # unit test files
   file_system/block_layer_test.c
   file_system/disk_test.c
   file_system/inode_test.c
+  file_system/data_block_test.c
   # runner test file
   file_system/file_system_test_runner.c
 )
