@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include "block_layer.h"
-#include "disk.h"
 #include "file_system.h"
 
 int inode_bitmap_find_available_slot(block* bitmap);
