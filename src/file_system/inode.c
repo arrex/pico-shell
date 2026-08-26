@@ -12,7 +12,6 @@ int inode_bitmap_find_slot(block* bitmap);
 void inode_bitmap_alloc(block* bitmap, int slot);
 void inode_bitmap_free(block* bitmap, int slot);
 
-
 /*
  * this function allocates an inode into the file system. it
  * finds an available slot and performs the writes to disk.
@@ -39,6 +38,9 @@ int inode_alloc(struct inode* inode) {
     int offset = INODE_SIZE * (slot % (NUM_INODES / INODE_TABLE_BLOCKS));
     memcpy(table_block, inode, sizeof(struct inode));
 
+    // update inode bitmap
+    inode_bitmap_alloc(&bitmap_block, slot);
+
     // write inode table and bitmap blocks back
     block_write(&bitmap_block, INODE_BITMAP_BLOCK);
     block_write(&table_block, block_num);
@@ -54,7 +56,7 @@ int inode_alloc(struct inode* inode) {
  * returns the slot number in case of success, -1 otherwise.
  */
 int inode_free(int slot) {
-    // load inode bitmap block and find slot
+    // load inode bitmap block
     block bitmap_block;
     block_read(&bitmap_block, INODE_BITMAP_BLOCK);
     // update bitmap
@@ -62,6 +64,41 @@ int inode_free(int slot) {
     // write back to disk
     block_write(&bitmap_block, INODE_BITMAP_BLOCK);
     return slot;
+}
+
+/*
+ * reads the inode at a given slot from the inode table.
+ */
+int inode_read(struct inode* out, int slot) {
+    // load in inode table block
+    int block_num = INODE_TABLE_START + (slot * INODE_SIZE) / BLOCK_SIZE;
+    block table_block;
+    block_read(&table_block, block_num);
+
+    // fetch inode in table block
+    int offset = INODE_SIZE * (slot % (BLOCK_SIZE / INODE_SIZE));
+    memcpy(&out, &table_block[offset], sizeof(struct inode));
+
+    return 0;
+}
+
+/*
+ * writes an inode struct to disk at a specified slot.
+ */
+int inode_write(struct inode* in, int slot) {
+    // load in inode table block
+    int block_num = INODE_TABLE_START + (slot * INODE_SIZE) / BLOCK_SIZE;
+    block table_block;
+    block_read(&table_block, block_num);
+
+    // perform update to table block
+    int offset = INODE_SIZE * (slot % (BLOCK_SIZE / INODE_SIZE));
+    memcpy(&table_block[offset], in, sizeof(struct inode));
+
+    // write table block back to disk
+    block_write(&table_block, block_num);
+
+    return 0;
 }
 
 /*
