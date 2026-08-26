@@ -21,6 +21,12 @@ int inode_bitmap_free(block* bitmap, int slot);
  * returns slot if allocated, else -1.
  */
 int inode_alloc(struct inode* inode) {
+    if (inode == NULL) {
+        fprintf(stderr,
+                "Warning: cannot allocate an inode whose pointer is NULL\n");
+        return -1;
+    }
+
     // load inode bitmap block
     block bitmap_block;
     block_read(&bitmap_block, INODE_BITMAP_BLOCK);
@@ -53,6 +59,10 @@ int inode_alloc(struct inode* inode) {
  * returns slot in case of success, else -1.
  */
 int inode_free(int slot) {
+    if (slot < 0 || slot > NUM_INODES) {
+        fprintf(stderr, "Warning: invalid inode slot number %d\n", slot);
+    }
+
     // load inode bitmap block
     block bitmap_block;
     if (block_read(&bitmap_block, INODE_BITMAP_BLOCK) != 0) {
@@ -73,6 +83,16 @@ int inode_free(int slot) {
  * returns 0 in case of success, else -1.
  */
 int inode_read(struct inode* out, int slot) {
+    if (out == NULL) {
+        fprintf(stderr, "Warning: cannot read inode into a NULL buffer\n");
+        return -1;
+    }
+
+    if (slot < 0 || slot > NUM_INODES) {
+        fprintf(stderr, "Warning: invalid inode slot number %d\n", slot);
+        return -1;
+    }
+
     // load in inode table block
     int block_num = INODE_TABLE_START + (slot * INODE_SIZE) / BLOCK_SIZE;
     block table_block;
@@ -93,6 +113,16 @@ int inode_read(struct inode* out, int slot) {
  * returns 0 in case of success, else -1
  */
 int inode_write(struct inode* in, int slot) {
+    if (in == NULL) {
+        fprintf(stderr, "Warning: cannot write NULL inode pointer to disk\n");
+        return -1;
+    }
+
+    if (slot < 0 || slot > NUM_INODES) {
+        fprintf(stderr, "Warning: invalid inode slot number %d\n", slot);
+        return -1;
+    }
+
     // load in inode table block
     int block_num = INODE_TABLE_START + (slot * INODE_SIZE) / BLOCK_SIZE;
     block table_block;
