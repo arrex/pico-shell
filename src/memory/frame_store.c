@@ -1,10 +1,11 @@
 #include "frame_store.h"
-#include "memory.h"
-#include "lru.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#include "lru.h"
+#include "memory.h"
 
 struct frame_store* fstore_init() {
     // init lru strategy

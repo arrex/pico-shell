@@ -8,7 +8,7 @@
  * Returns:
  * - 0 if not alphanumeric
  * - 1 if alphanumeric
-*/
+ */
 int is_valid_name(char* string) {
     if (string == NULL) {
         return 0;
@@ -33,6 +33,4 @@ int is_valid_name(char* string) {
  *
  * returns an integer, hence the suffix `i`.
  */
-int ceili(int n, int k) {
-    return (n + k - 1) / k;
-}
+int ceili(int n, int k) { return (n + k - 1) / k; }

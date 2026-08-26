@@ -1,15 +1,15 @@
 #include "shell.h"
-#include "interpreter.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "../file_system/file_system.h"
 #include "../memory/lru.h"
 #include "../memory/memory.h"
 #include "../scheduling/ready_queue.h"
-#include "../file_system/file_system.h"
+#include "interpreter.h"
 
 int main(int argc, char* argv[]) {
     // Set stdout to unbuffered to avoid undefined printing behaviour in batch
