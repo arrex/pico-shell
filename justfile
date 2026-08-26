@@ -29,4 +29,4 @@ run FRAME_SIZE="3" FRAME_STORE_SIZE="300" VAR_STORE_SIZE="10":
     ./build/picoshell
 
 lint:
-    find . -name "*.c" -o -name "*.h" | xargs clang-format -i
+    find . -path ./vendor -prune -o \( -name "*.c" -o -name "*.h" \) -print | xargs clang-format -i
