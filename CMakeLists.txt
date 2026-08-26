@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(picoshell)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Specify C standard
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -69,3 +71,6 @@ target_compile_definitions(
 # unit testing
 enable_testing()
 add_subdirectory(tests)
+
+# add vendor deps
+add_subdirectory(vendor/unity)
