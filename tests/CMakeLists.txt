@@ -3,11 +3,14 @@ set(FILE_SYSTEM_TEST "${PROJECT_NAME}_file_system_tests")
 
 add_executable(${FILE_SYSTEM_TEST}
   # src files
-  ${PROJECT_SOURCE_DIR}/src/file_system/disk.c
   ${PROJECT_SOURCE_DIR}/src/file_system/block_layer.c
+  ${PROJECT_SOURCE_DIR}/src/file_system/disk.c
+  ${PROJECT_SOURCE_DIR}/src/file_system/inode.c
+  ${PROJECT_SOURCE_DIR}/src/utils/utils.c
   # unit test files
-  file_system/disk_test.c
   file_system/block_layer_test.c
+  file_system/disk_test.c
+  file_system/inode_test.c
   # runner test file
   file_system/file_system_test_runner.c
 )
