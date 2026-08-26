@@ -15,7 +15,8 @@
 #define VAR_STORE_SIZE 10
 #endif
 
-// forward declaration -- signal existene of pcb struct type since we use it in shell_memory.c
+// forward declaration -- signal existene of pcb struct type since we use it in
+// shell_memory.c
 struct PCB;
 
 typedef struct memory_manager {

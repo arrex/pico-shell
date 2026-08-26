@@ -1,22 +1,18 @@
 #include "../../src/file_system/disk.h"
-#include "unity.h"
+
 #include <stdint.h>
 #include <string.h>
 
-void setUp(void) {
-    disk_reset();
-}
+#include "unity.h"
 
-void tearDown(void) {}
-
-static void assert_disk_equals(const uint8_t *expected) {
+void assert_disk_equals(const uint8_t* expected) {
     uint8_t actual[DISK_SIZE];
 
     TEST_ASSERT_EQUAL_INT(0, disk_read(actual, DISK_SIZE, 0));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(expected, actual, DISK_SIZE);
 }
 
-void test_disk_starts_at_all_zeroes() {
+void test_disk_starts_at_all_zeroes(void) {
     int err_code;
 
     // read should succeed
@@ -143,15 +139,4 @@ void test_read_write_at_final_disk_byte(void) {
     TEST_ASSERT_EQUAL_INT(0, disk_read(&out, 1, DISK_SIZE - 1));
     // written data should be retrieved
     TEST_ASSERT_EQUAL_UINT8(input, out);
-}
-
-int main(void) {
-    UNITY_BEGIN();
-    RUN_TEST(test_disk_starts_at_all_zeroes);
-    RUN_TEST(test_read_write_round_trip);
-    RUN_TEST(test_overwrite_existing_data);
-    RUN_TEST(test_invalid_read_inputs_leave_disk_unchanged);
-    RUN_TEST(test_invalid_write_inputs_leave_disk_unchanged);
-    RUN_TEST(test_read_write_at_final_disk_byte);
-    return UNITY_END();
 }

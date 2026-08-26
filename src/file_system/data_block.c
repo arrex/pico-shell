@@ -1,6 +1,6 @@
-#include "block_layer.h"
-
 #include <stdio.h>
+
+#include "block_layer.h"
 
 int data_bitmap_find_available_block(block* bitmap);
 int data_bitmap_alloc(block* bitmap, int data_block);
@@ -101,7 +101,8 @@ int data_bitmap_alloc(block* bitmap, int data_block) {
     int bit_ix = data_block % 8;
 
     if ((*bitmap)[byte_ix] & (1 << bit_ix)) {
-        fprintf(stderr, "Warning: block number %d is already taken\n", data_block);
+        fprintf(stderr, "Warning: block number %d is already taken\n",
+                data_block);
         return -1;
     }
 
@@ -120,7 +121,8 @@ int data_bitmap_free(block* bitmap, int data_block) {
     int bit_ix = data_block % 8;
 
     if (((*bitmap)[byte_ix] & (1 << bit_ix)) == 0) {
-        fprintf(stderr, "Warning: block number %d is already free\n", data_block);
+        fprintf(stderr, "Warning: block number %d is already free\n",
+                data_block);
         return -1;
     }
 
