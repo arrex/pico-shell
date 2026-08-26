@@ -15,7 +15,6 @@ typedef struct inode {
     extent extents[MAX_EXTENTS];
 } inode;
 
-int inode_root_alloc(struct inode* inode, int root_inode_slot);
 int inode_alloc(struct inode* inode);
 int inode_free(int inode);
 int inode_read(struct inode* out, int inode);
