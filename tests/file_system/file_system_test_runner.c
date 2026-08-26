@@ -1,5 +1,6 @@
 #include "../../src/file_system/disk.h"
 #include "block_layer_test.h"
+#include "data_block_test.h"
 #include "disk_test.h"
 #include "inode_test.h"
 #include "unity_internals.h"
@@ -41,6 +42,19 @@ int main(void) {
     RUN_TEST(test_inode_read_invalid_inputs);
     RUN_TEST(test_inode_write_updates_only_requested_inode);
     RUN_TEST(test_inode_write_invalid_inputs);
+
+    // data block layer tests
+    RUN_TEST(test_data_block_alloc_allocates_first_free_slot);
+    RUN_TEST(test_data_block_alloc_uses_lowest_available_slot);
+    RUN_TEST(test_data_block_alloc_can_fill_data_region);
+    RUN_TEST(test_data_block_alloc_fails_when_data_region_full);
+    RUN_TEST(test_data_block_free_marks_block_available);
+    RUN_TEST(test_data_block_free_fails_when_block_already_free);
+    RUN_TEST(test_data_block_free_invalid_inputs);
+    RUN_TEST(test_data_block_read_reads_block_at_requested_slot);
+    RUN_TEST(test_data_block_read_invalid_inputs);
+    RUN_TEST(test_data_block_write_updates_only_requested_block);
+    RUN_TEST(test_data_block_write_invalid_inputs);
 
     return UNITY_END();
 }
