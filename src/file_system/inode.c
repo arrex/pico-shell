@@ -9,14 +9,47 @@
 #include <string.h>
 
 int inode_bitmap_find_available_slot(block* bitmap);
-void inode_bitmap_alloc(block* bitmap, int slot);
-void inode_bitmap_free(block* bitmap, int slot);
+int inode_bitmap_alloc(block* bitmap, int slot);
+int inode_bitmap_free(block* bitmap, int slot);
+
+/*
+ * this function allocates the root inode and intakes a defined root inode slot
+ * number. it is not meant to be used for general inode allocations.
+ *
+ * returns root inode slot if allocated, else -1.
+ */
+int inode_root_alloc(struct inode* inode, int root_inode_slot) {
+    // load inode bitmap block and claim slot
+    block bitmap_block;
+    block_read(&bitmap_block, INODE_BITMAP_BLOCK);
+
+    // try claiming root inode slot
+    int errCode = inode_bitmap_alloc(&bitmap_block, root_inode_slot);
+    if (errCode != 0) {
+        return -1;
+    }
+
+    // load inode table block
+    int block_num = INODE_TABLE_START + (root_inode_slot * INODE_SIZE) / BLOCK_SIZE;
+    block table_block;
+    block_read(&table_block, block_num);
+
+    // write to inode table block
+    int offset = INODE_SIZE * (root_inode_slot % (NUM_INODES / INODE_TABLE_BLOCKS));
+    memcpy(table_block, inode, sizeof(struct inode));
+
+    // write blocks back
+    block_write(&bitmap_block, INODE_BITMAP_BLOCK);
+    block_write(&table_block, block_num);
+
+    return root_inode_slot;
+}
 
 /*
  * this function allocates an inode into the file system. it
  * finds an available slot and performs the writes to disk.
  *
- * returns the slot number if allocated, else -1.
+ * returns slot if allocated, else -1.
  */
 int inode_alloc(struct inode* inode) {
     // load inode bitmap block and find slot
@@ -39,7 +72,10 @@ int inode_alloc(struct inode* inode) {
     memcpy(table_block, inode, sizeof(struct inode));
 
     // update inode bitmap
-    inode_bitmap_alloc(&bitmap_block, slot);
+    int errCode = inode_bitmap_alloc(&bitmap_block, slot);
+    if (errCode != 0) {
+        return -1;
+    }
 
     // write inode table and bitmap blocks back
     block_write(&bitmap_block, INODE_BITMAP_BLOCK);
@@ -53,21 +89,29 @@ int inode_alloc(struct inode* inode) {
  * this function frees an inode from the file system. it will clear
  * the inode entry from the bitmap and the inode table.
  *
- * returns the slot number in case of success, -1 otherwise.
+ * returns slot in case of success, else -1.
  */
 int inode_free(int slot) {
     // load inode bitmap block
     block bitmap_block;
     block_read(&bitmap_block, INODE_BITMAP_BLOCK);
+
     // update bitmap
-    inode_bitmap_free(&bitmap_block, slot);
+    int errCode = inode_bitmap_free(&bitmap_block, slot);
+    if (errCode != 0) {
+        return -1;
+    }
+
     // write back to disk
     block_write(&bitmap_block, INODE_BITMAP_BLOCK);
+
     return slot;
 }
 
 /*
  * reads the inode at a given slot from the inode table.
+ *
+ * returns 0 in case of success, else -1.
  */
 int inode_read(struct inode* out, int slot) {
     // load in inode table block
@@ -84,6 +128,8 @@ int inode_read(struct inode* out, int slot) {
 
 /*
  * writes an inode struct to disk at a specified slot.
+ *
+ * returns 0 in case of success, else -1
  */
 int inode_write(struct inode* in, int slot) {
     // load in inode table block
@@ -135,30 +181,38 @@ int inode_bitmap_find_available_slot(block* bitmap) {
 
 /*
  * modifies the inode bitmap to claim an inode.
+ *
+ * returns 0 in case of success, else -1.
  */
-void inode_bitmap_alloc(block* bitmap, int slot) {
+int inode_bitmap_alloc(block* bitmap, int slot) {
     int byte_ix = slot / 8;
     int bit_ix = slot % 8;
 
     if ((*bitmap)[byte_ix] & (1 << bit_ix)) {
         fprintf(stderr, "Warning: slot %d is already taken\n", slot);
-        return;
+        return -1;
     }
 
     (*bitmap)[byte_ix] |= (1 << bit_ix);
+
+    return 0;
 }
 
 /*
  * modifies the inode bitmap to release an inode.
+ *
+ * returns 0 in case of success, else -1.
  */
-void inode_bitmap_free(block* bitmap, int slot) {
+int inode_bitmap_free(block* bitmap, int slot) {
     int byte_ix = slot / 8;
     int bit_ix = slot % 8;
 
     if (((*bitmap)[byte_ix] & (1 << bit_ix)) == 0) {
         fprintf(stderr, "Warning: slot %d is already free\n", slot);
-        return;
+        return -1;
     }
 
     (*bitmap)[byte_ix] &= ~(1 << bit_ix);
+
+    return 0;
 }
