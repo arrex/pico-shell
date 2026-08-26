@@ -14,32 +14,6 @@ int inode_bitmap_alloc(block* bitmap, int slot);
 int inode_bitmap_free(block* bitmap, int slot);
 
 /*
- * this function allocates the root inode and intakes a defined root inode slot
- * number. it is not meant to be used for general inode allocations.
- *
- * returns root inode slot if allocated, else -1.
- */
-int inode_root_alloc(struct inode* root_inode, int root_inode_slot) {
-    // load inode bitmap block and claim slot
-    block bitmap_block;
-    if (block_read(&bitmap_block, INODE_BITMAP_BLOCK) != 0) {
-        return -1;
-    }
-
-    // try claiming root inode slot
-    if (inode_bitmap_alloc(&bitmap_block, root_inode_slot) != 0) {
-        return -1;
-    }
-
-    // write inode entry in table
-    if (inode_write(root_inode, root_inode_slot) != 0) {
-        return -1;
-    }
-
-    return root_inode_slot;
-}
-
-/*
  * this function allocates an inode into the file system. it
  * finds an available slot and performs the writes to disk. to
  * update an existing inode, refer to `inode_write()`.
