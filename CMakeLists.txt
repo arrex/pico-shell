@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(BoubaOS C)
+project(picoshell)
 
 # Specify C standard
 set(CMAKE_C_STANDARD 11)
@@ -65,3 +65,7 @@ target_compile_definitions(
     FRAME_STORE_SIZE=${FRAME_STORE_SIZE}
     VAR_STORE_SIZE=${VAR_STORE_SIZE}
 )
+
+# unit testing
+enable_testing()
+add_subdirectory(tests)
