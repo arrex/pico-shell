@@ -1,12 +1,13 @@
 #include "file_system.h"
-#include "disk.h"
-#include "inode.h"
-#include "block_layer.h"
-#include "data_block.h"
-#include "directory.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "block_layer.h"
+#include "data_block.h"
+#include "directory.h"
+#include "disk.h"
+#include "inode.h"
 
 int superblock_init();
 int root_dir_init();
@@ -47,13 +48,11 @@ int fs_create(const char* path, enum file_type type) {
 }
 
 int superblock_init() {
-    struct superblock superblock = {
-        .file_system_type = FS_TYPE,
-        .num_inodes = NUM_INODES,
-        .inodes_table_start = INODE_TABLE_START,
-        .num_data_blocks = NUM_DATA_BLOCKS,
-        .block_size = BLOCK_SIZE
-    };
+    struct superblock superblock = {.file_system_type = FS_TYPE,
+                                    .num_inodes = NUM_INODES,
+                                    .inodes_table_start = INODE_TABLE_START,
+                                    .num_data_blocks = NUM_DATA_BLOCKS,
+                                    .block_size = BLOCK_SIZE};
     block buf = {0};
     memcpy(buf, &superblock, sizeof(struct superblock));
     block_write(&buf, 0);
@@ -71,20 +70,16 @@ int root_dir_init() {
         return -1;
     }
 
-    struct extent ext = {
-        .logical_start = 0,
-        .physical_start = DATA_REGION_START + block_num,
-        .block_count = 1
-    };
+    struct extent ext = {.logical_start = 0,
+                         .physical_start = DATA_REGION_START + block_num,
+                         .block_count = 1};
 
-    struct inode root_inode = {
-        .file_type = DIRECTORY_T,
-        .parent_inode = ROOT_INODE, // self reference
-        .size = 0,
-        .blocks_occupied = 1,
-        .extent_count = 1,
-        .extents = {ext}
-    };
+    struct inode root_inode = {.file_type = DIRECTORY_T,
+                               .parent_inode = ROOT_INODE,  // self reference
+                               .size = 0,
+                               .blocks_occupied = 1,
+                               .extent_count = 1,
+                               .extents = {ext}};
 
     errCode = inode_alloc(&root_inode);
     if (errCode != 0) {
