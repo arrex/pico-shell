@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int inode_bitmap_find_slot(block* bitmap);
+int inode_bitmap_find_available_slot(block* bitmap);
 void inode_bitmap_alloc(block* bitmap, int slot);
 void inode_bitmap_free(block* bitmap, int slot);
 
@@ -22,7 +22,7 @@ int inode_alloc(struct inode* inode) {
     // load inode bitmap block and find slot
     block bitmap_block;
     block_read(&bitmap_block, INODE_BITMAP_BLOCK);
-    int slot = inode_bitmap_find_slot(&bitmap_block);
+    int slot = inode_bitmap_find_available_slot(&bitmap_block);
 
     // no free slots
     if (slot == -1) {
@@ -108,7 +108,7 @@ int inode_write(struct inode* in, int slot) {
  * returns the inode number if an available one is found. otherwise,
  * returns -1.
  */
-int inode_bitmap_find_slot(block* bitmap) {
+int inode_bitmap_find_available_slot(block* bitmap) {
     // ceil(n / k) = (n + k - 1) / k
     // k = 8 since 1 byte = 8 bits
     for (int i = 0; i < (NUM_INODES + 7) / 8; i++) {
