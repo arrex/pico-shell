@@ -77,7 +77,7 @@ int inode_read(struct inode* out, int slot) {
 
     // fetch inode in table block
     int offset = INODE_SIZE * (slot % (BLOCK_SIZE / INODE_SIZE));
-    memcpy(&out, &table_block[offset], sizeof(struct inode));
+    memcpy(out, &table_block[offset], sizeof(struct inode));
 
     return 0;
 }
