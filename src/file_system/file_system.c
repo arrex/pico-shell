@@ -1,5 +1,6 @@
 #include "file_system.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,20 +13,28 @@
 int superblock_init();
 int root_dir_init();
 
-void fs_init() {
+/*
+ * initializes the entire file system by writing the superblock and the
+ * root directory entry.
+ *
+ * returns 0 in case of success, else -1.
+ */
+int fs_init() {
     int errCode;
 
     errCode = superblock_init();
     if (errCode != 0) {
-        // print smth
-        return;
+        fprintf(stderr, "Warning: could not initialize superblock\n");
+        return -1;
     }
 
     errCode = root_dir_init();
     if (errCode != 0) {
-        // print smth
-        return;
+        fprintf(stderr, "Warning: could not initialize root directory\n");
+        return -1;
     }
+
+    return 0;
 }
 
 int fs_create(const char* path, enum file_type type) {
@@ -63,20 +72,19 @@ int superblock_init() {
 int root_dir_init() {
     int errCode;
     // bootstrap root dir
-    int block_num = data_block_alloc();
+    int data_block = data_block_alloc();
 
-    if (block_num == -1) {
+    if (data_block == -1) {
         // something bad happened...
         return -1;
     }
 
-    struct extent ext = {.logical_start = 0,
-                         .physical_start = DATA_REGION_START + block_num,
-                         .block_count = 1};
+    struct extent ext = {
+        .logical_start = 0, .data_start = data_block, .block_count = 1};
 
     struct inode root_inode = {.file_type = DIRECTORY_T,
                                .parent_inode = ROOT_INODE,  // self reference
-                               .size = 0,
+                               .size = sizeof(struct dirent) * 2,
                                .blocks_occupied = 1,
                                .extent_count = 1,
                                .extents = {ext}};
@@ -86,32 +94,29 @@ int root_dir_init() {
         // something bad happened....
         // maybe we should check to ensure that inode num is 0 too
         // rollback
-        data_block_free(block_num);
+        data_block_free(data_block);
         return -1;
     }
 
-    struct dir_entry curr_dir = {
+    struct dirent curr_dir = {
         .filename = ".",
         .inode = ROOT_INODE,
     };
 
-    errCode = dir_add(ROOT_INODE, &curr_dir);
-    if (errCode != 0) {
-        // rollback
-        inode_free(ROOT_INODE);
-        data_block_free(block_num);
-    }
-
-    struct dir_entry par_dir = {
+    struct dirent par_dir = {
         .filename = "..",
         .inode = ROOT_INODE,
     };
 
-    errCode = dir_add(ROOT_INODE, &par_dir);
-    if (errCode != 0) {
+    block data;
+    memcpy(&data, &curr_dir, sizeof(struct dirent));
+    memcpy(&data[sizeof(struct dirent)], &par_dir, sizeof(struct dirent));
+    // write back
+    if (data_block_write(&data, data_block) != 0) {
         // rollback
         inode_free(ROOT_INODE);
-        data_block_free(block_num);
+        data_block_free(data_block);
+        return -1;
     }
 
     // success

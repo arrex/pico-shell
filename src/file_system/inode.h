@@ -1,9 +1,9 @@
 #include "file_system.h"
 
 typedef struct extent {
-    int logical_start;
-    int physical_start;
-    int block_count;
+    int logical_start;  // starting block of the file
+    int data_start;     // starting data block on disk
+    int block_count;    // how many blocks
 } extent;
 
 typedef struct inode {

@@ -9,7 +9,7 @@ struct inode DUMMY_INODE1 = {.file_type = DIRECTORY_T,
                              .extent_count = 1,
                              .extents = {{
                                  .logical_start = 0,
-                                 .physical_start = DATA_REGION_START,
+                                 .data_start = DATA_REGION_START,
                                  .block_count = 1,
                              }}};
 
