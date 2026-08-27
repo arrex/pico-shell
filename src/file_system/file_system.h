@@ -37,7 +37,7 @@ typedef struct superblock {
     int block_size;  // in bytes
 } superblock;
 
-void fs_init();
+int fs_init();
 int fs_create(const char* path, enum file_type type);
 void fs_delete();
 void fs_read();

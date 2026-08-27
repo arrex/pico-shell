@@ -39,7 +39,9 @@ int main(int argc, char* argv[]) {
     }
 
     mem_init();
-    fs_init();
+    if (fs_init() != 0) {
+        exit(99);
+    }
 
     while (1) {
         // omit printing prompt char if we are in batch mode
