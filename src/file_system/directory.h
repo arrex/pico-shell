@@ -2,8 +2,8 @@
 
 #include "file_system.h"
 
-// our file system design
 typedef struct dirent {
+    bool valid;
     char filename[MAX_FILENAME_LEN];
     int inode;
 } dirent;
@@ -11,6 +11,6 @@ typedef struct dirent {
 // forward decls
 struct inode;
 
-bool dir_lookup(int inode_num, char* filename);
+bool dir_lookup(int inode_num, const char* filename);
 int dir_add(int inode_num, struct dirent* new_dirent);
-int dir_remove(int inode_num, char* filename);
+int dir_remove(int inode_num, const char* filename);
