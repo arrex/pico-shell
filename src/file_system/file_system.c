@@ -5,9 +5,9 @@
 #include <string.h>
 
 #include "block_layer.h"
+#include "pathname.h"
 #include "data_block.h"
 #include "directory.h"
-#include "disk.h"
 #include "inode.h"
 
 int superblock_init();
@@ -33,25 +33,6 @@ int fs_init() {
         fprintf(stderr, "Warning: could not initialize root directory\n");
         return -1;
     }
-
-    return 0;
-}
-
-int fs_create(const char* path, enum file_type type) {
-    // read root inode to see where data block is
-    uint8_t buffer[sizeof(struct inode)];
-    int base_address = INODE_TABLE_START * BLOCK_SIZE + ROOT_INODE * INODE_SIZE;
-    disk_read(buffer, base_address, sizeof(struct inode));
-
-    // read root inode's data block to see entries
-    // recursively do the same until we hit end of path
-    // if already exists -> error
-    // find available inode from bitmap
-    // if no inode available -> error
-    // find available data block
-    // if no data block -> error
-    // allocate new inode
-    // allocate new data block
 
     return 0;
 }
@@ -83,7 +64,7 @@ int root_dir_init() {
         .logical_start = 0, .data_start = data_block, .block_count = 1};
 
     struct inode root_inode = {.file_type = DIRECTORY_T,
-                               .parent_inode = ROOT_INODE,  // self reference
+                               .inum = ROOT_INODE,
                                .size = 0,
                                .blocks_occupied = 1,
                                .extent_count = 1,
@@ -117,5 +98,85 @@ int root_dir_init() {
     }
 
     // success
+    return 0;
+}
+
+/*
+ * creates a file of the specified type. we expose a single create primitive in
+ * our file system since directories are essentially structured files.
+ *
+ * returns 0 in case of success, else -1.
+ */
+int fs_create(char* path, enum file_type type) {
+    if (path == NULL) {
+        fprintf(stderr, "Warning: path cannot be null\n");
+        return -1;
+    }
+
+    if (type != FILE_T && type != DIRECTORY_T) {
+        // %d specifier since enum types treated as int
+        fprintf(stderr, "Warning: invalid file type %d\n", type);
+        return -1;
+    }
+
+    struct inode inode = {
+        .file_type = type,
+        .inum = -1, // will be mutated by inode_alloc
+        .size = 0,
+        .blocks_occupied = 0,
+        .extent_count = 0,
+        .extents = {},
+    };
+    struct inode dir_inode;
+    char name[MAX_FILENAME_LEN];
+
+    if ((path_lookup_parent(&dir_inode, path, name)) != 0) {
+        return -1;
+    }
+
+    if (dir_lookup(dir_inode.inum, name) != -1) {
+        fprintf(stderr, "Warning: entry with name %s already exists in directory\n", name);
+        return -1;
+    }
+
+    if (inode_alloc(&inode) == -1) {
+        return -1;
+    }
+
+    // add dot entries if creating a dir
+    if (type == DIRECTORY_T) {
+        struct dirent curr_dir = {
+            .valid = true,
+            .filename = ".",
+            .inode = inode.inum,
+        };
+
+        if (dir_add(inode.inum, &curr_dir) != 0) {
+            return -1;
+        }
+
+        // link to parent dir
+        struct dirent par_dir = {
+            .valid = true,
+            .filename = "..",
+            .inode = dir_inode.inum,
+        };
+
+        if (dir_add(inode.inum, &par_dir) != 0) {
+            return -1;
+        }
+
+        // link new entry in parent dir
+        struct dirent par_link = {
+            .valid = true,
+            .inode = inode.inum,
+        };
+        memcpy(&par_link.filename, name, MAX_FILENAME_LEN);
+
+        if (dir_add(dir_inode.inum, &par_link) != 0)  {
+            return -1;
+        }
+    }
+
     return 0;
 }
