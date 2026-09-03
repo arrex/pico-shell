@@ -3,7 +3,7 @@
 #include "unity.h"
 
 struct inode DUMMY_INODE1 = {.file_type = DIRECTORY_T,
-                             .parent_inode = 0,
+                             .inum = 0,
                              .size = 0,
                              .blocks_occupied = 1,
                              .extent_count = 1,
@@ -14,7 +14,7 @@ struct inode DUMMY_INODE1 = {.file_type = DIRECTORY_T,
                              }}};
 
 struct inode DUMMY_INODE2 = {.file_type = FILE_T,
-                             .parent_inode = 0,
+                             .inum = 0,
                              .size = 0,
                              .blocks_occupied = 0,
                              .extent_count = 0,
