@@ -15,10 +15,8 @@
  * given filename.
  *
  * returns true if directory entry matching filename found, else false.
- *
- * ensure that specified inode is of type directory.
  */
-bool dir_lookup(int inode_num, char* filename) {
+bool dir_lookup(int inode_num, const char* filename) {
     if (filename == NULL) {
         fprintf(stderr, "Warning: filename cannot be NULL\n");
         return false;
@@ -31,7 +29,6 @@ bool dir_lookup(int inode_num, char* filename) {
     }
 
     struct inode inode;
-
     if (inode_read(&inode, inode_num) != 0) {
         return false;
     }
@@ -42,7 +39,6 @@ bool dir_lookup(int inode_num, char* filename) {
         return false;
     }
 
-    int num_entries = inode.size / sizeof(struct dirent);
     for (int i = 0; i < inode.extent_count; i++) {
         extent ext = inode.extents[i];
 
@@ -56,19 +52,12 @@ bool dir_lookup(int inode_num, char* filename) {
 
             for (int offset = 0; offset < BLOCK_SIZE;
                  offset += sizeof(struct dirent)) {
-                // no entries left to process
-                if (num_entries == 0) {
-                    return false;
-                }
-
                 struct dirent dirent;
                 memcpy(&dirent, data + offset, sizeof(struct dirent));
-
-                if (strcmp(dirent.filename, filename) == 0) {
+                // ensure that directory is a valid entry
+                if (dirent.valid && strcmp(dirent.filename, filename) == 0) {
                     return true;
                 }
-
-                num_entries--;
             }
         }
     }
@@ -76,76 +65,240 @@ bool dir_lookup(int inode_num, char* filename) {
     return false;
 }
 
+/*
+ * adds a directory entry to the specified inode's data.
+ *
+ * returns 0 in case of success, else -1.
+ */
 int dir_add(int inode_num, struct dirent* new_dirent) {
+    if (new_dirent == NULL) {
+        fprintf(stderr, "Warning: new directory entry cannot be NULL\n");
+        return -1;
+    }
+
+    if (inode_num < 0 || inode_num >= NUM_INODES) {
+        fprintf(stderr, "Warning: inode number %d is out of bounds\n",
+                inode_num);
+        return -1;
+    }
+
     struct inode inode;
     if (inode_read(&inode, inode_num) != 0) {
         return -1;
     }
 
     if (inode.file_type != DIRECTORY_T) {
-        fprintf(stderr, "Error: the inode at slot %d is not a directory\n",
+        fprintf(stderr, "Warning: the inode at slot %d is not a directory\n",
                 inode_num);
         return -1;
     }
 
-    int blocks_needed = ceili(inode.size + sizeof(struct dirent), BLOCK_SIZE);
-    // need to allocate a new block
-    if (inode.blocks_occupied < blocks_needed) {
-        int data_block = data_block_alloc();
-        if (data_block == -1) {
-            return -1;
+    for (int i = 0; i < inode.extent_count; i++) {
+        extent ext = inode.extents[i];
+
+        for (int b = 0; b < ext.block_count; b++) {
+            block data;
+            int data_block = ext.data_start + b;
+
+            if (data_block_read(&data, data_block) != 0) {
+                return -1;
+            }
+
+            for (int offset = 0; offset < BLOCK_SIZE;
+                 offset += sizeof(struct dirent)) {
+                struct dirent dirent;
+                memcpy(&dirent, data + offset, sizeof(struct dirent));
+
+                // found duplicate
+                if (dirent.valid &&
+                    strcmp(dirent.filename, new_dirent->filename) == 0) {
+                    fprintf(
+                        stderr,
+                        "Warning: filename %s already exists in directory\n",
+                        new_dirent->filename);
+                    return -1;
+                }
+
+                // found a hole
+                if (!(dirent.valid)) {
+                    memcpy(data + offset, new_dirent, sizeof(struct dirent));
+
+                    if (data_block_write(&data, data_block) != 0) {
+                        return -1;
+                    }
+
+                    return 0;
+                }
+            }
         }
+    }
 
-        int phys_block = DATA_REGION_START + data_block;
+    // no holes found, need to allocate a new block
+    int new_data_block = data_block_alloc();
+    if (new_data_block == -1) {
+        return -1;
+    }
 
+    // update inode extents list
+    if (inode.extent_count > 0) {
+        // case: inode has existing extents
+        // peek last extent in extent list
+        struct extent* ext = &inode.extents[inode.extent_count - 1];
         // update extent list
-        struct extent* last = &inode.extents[inode.extent_count - 1];
-        if (phys_block == last->data_start + last->block_count) {
+        if (new_data_block == ext->data_start + ext->block_count) {
             // new block can extend last extent
-            last->block_count++;
+            ext->block_count++;
         } else if (inode.extent_count < MAX_EXTENTS) {
             // need to create a new extent
             inode.extents[inode.extent_count] =
                 (struct extent){.logical_start = inode.blocks_occupied,
-                                .data_start = phys_block,
+                                .data_start = new_data_block,
                                 .block_count = 1};
-
             inode.extent_count++;
         } else {
-            fprintf(stderr, "Error: could not update extent list of inode %d",
+            fprintf(stderr, "Warning: could not update extent list of inode %d",
                     inode_num);
             // rollback
-            data_block_free(data_block);
+            data_block_free(new_data_block);
             return -1;
         }
-
-        inode.blocks_occupied++;
+    } else {
+        // case: no extents in inode yet
+        // create new one
+        struct extent ext = {
+            .logical_start = 0,
+            .data_start = new_data_block,
+            .block_count = 1,
+        };
+        inode.extent_count++;
+        memcpy(inode.extents, &ext, sizeof(struct extent));
     }
 
-    // add dir entry into data block
-    struct extent extent = inode.extents[inode.extent_count - 1];
-    int phys_block = extent.data_start + extent.block_count - 1;
+    inode.blocks_occupied++;
 
-    block data;
-    if (block_read(&data, phys_block) != 0) {
-        return -1;
-    }
-
-    // add new entry to block
-    int offset = inode.size % BLOCK_SIZE;
-    memcpy(&data[offset], new_dirent, sizeof(struct dirent));
-
-    // update metadata
+    // add new entry to block at first slot (since block newly allocated)
+    block data = {0};
+    memcpy(data, new_dirent, sizeof(struct dirent));
     inode.size += sizeof(struct dirent);
 
-    if (block_write(&data, phys_block) != 0) {
+    if (data_block_write(&data, new_data_block) != 0) {
+        // rollback
+        if (data_block_free(new_data_block) != 0) {
+            fprintf(stderr,
+                    "Warning: failed to free newly allocated block during "
+                    "rollback\n");
+        }
         return -1;
     }
 
     if (inode_write(&inode, inode_num) != 0) {
-        // TODO: rollback
+        // rollback
+        if (data_block_free(new_data_block) != 0) {
+            fprintf(stderr,
+                    "Warning: failed to free newly allocated block during "
+                    "rollback\n");
+        }
         return -1;
     }
 
     return 0;
+}
+
+/*
+ * removes a directory entry from the specified inode by invalidating
+ * it. does not perform any type of compaction in the directory's data
+ * blocks.
+ *
+ * returns 0 in case of success, else -1.
+ */
+int dir_remove(int inode_num, const char* filename) {
+    if (filename == NULL) {
+        fprintf(stderr, "Warning: filename cannot be NULL\n");
+        return -1;
+    }
+
+    if (inode_num < 0 || inode_num >= NUM_INODES) {
+        fprintf(stderr, "Warning: inode number %d is out of bounds\n",
+                inode_num);
+        return -1;
+    }
+
+    if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0) {
+        fprintf(stderr, "Warning: cannot remove protected directory %s\n",
+                filename);
+        return -1;
+    }
+
+    struct inode inode;
+    if (inode_read(&inode, inode_num) != 0) {
+        return -1;
+    }
+
+    if (inode.file_type != DIRECTORY_T) {
+        fprintf(stderr, "Warning: the inode at slot %d is not a directory\n",
+                inode_num);
+        return -1;
+    }
+
+    // scan all entries via inode extents to find location
+    for (int i = 0; i < inode.extent_count; i++) {
+        extent ext = inode.extents[i];
+
+        for (int b = 0; b < ext.block_count; b++) {
+            block data;
+            int data_block = ext.data_start + b;
+
+            if (data_block_read(&data, data_block) != 0) {
+                return -1;
+            }
+
+            for (int offset = 0; offset < BLOCK_SIZE;
+                 offset += sizeof(struct dirent)) {
+                struct dirent dirent;
+                memcpy(&dirent, data + offset, sizeof(struct dirent));
+
+                // found entry to delete
+                if (dirent.valid && strcmp(dirent.filename, filename) == 0) {
+                    dirent.valid = false;
+                    // make snapshot copy of block
+                    block before_snapshot;
+                    memcpy(before_snapshot, data, sizeof(block));
+
+                    // write invalidated entry
+                    memcpy(data + offset, &dirent, sizeof(struct dirent));
+
+                    if (data_block_write(&data, data_block) != 0) {
+                        return -1;
+                    }
+
+                    // data write was success, update metadata
+                    inode.size -= sizeof(struct dirent);
+
+                    if (inode_write(&inode, inode_num) != 0) {
+                        // rollback
+                        if (data_block_write(&before_snapshot, data_block) !=
+                            0) {
+                            fprintf(stderr,
+                                    "Warning: failed to rollback to previous "
+                                    "snapshot at block %d due to inode write "
+                                    "failure\n",
+                                    data_block);
+                        }
+                        return -1;
+                    }
+
+                    return 0;
+                }
+            }
+        }
+    }
+
+    // did not find entry, it does not exist
+    fprintf(stderr, "Warning: filename %s does not exist in directory\n",
+            filename);
+    return -1;
+
+    // TODO: for now, we leave the deleted entry as a hole. in the future, maybe
+    // we will implement compaction to optimize the space used and free up some
+    // data blocks if we can.
 }
