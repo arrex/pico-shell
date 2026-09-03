@@ -6,24 +6,24 @@
 #include "../memory/memory.h"
 #include "../utils/badcommand.h"
 #include "../utils/utils.h"
+#include "../file_system/file_system.h"
 
-const int mmkdir(char* dirname) {
+const int mmkdir(char* path) {
     // Fetch from memory if preceded by '$' sign
-    if (dirname[0] == '$') {
-        dirname++;
-        dirname = mem_get_vstore_value(dirname);
+    if (path[0] == '$') {
+        path++;
+        path = mem_get_vstore_value(path);
 
-        if (dirname == NULL) {
+        if (path == NULL) {
             return badcommandVariableDoesNotExist();
         }
     }
 
-    if (is_valid_name(dirname) != 1) {
-        return badcommandNameNotAlphanum();
+    if (is_valid_path(path) != 1) {
+        return badcommandNotAlphanum();
     }
 
-    // Error creating directory
-    if (mkdir(dirname, DIRECTORY_PERMS) == -1) {
+    if (fs_create(path, DIRECTORY_T) != 0) {
         return badCommandErrorOccurred();
     }
 
