@@ -2,21 +2,21 @@
 #include <stdlib.h>
 
 /*
- * Checks if a string is valid. Used for checking file and directory names.
+ * Checks if a path is valid. Used for checking file and directory paths.
  * Alphanumeric characters and underscores are allowed.
  *
  * Returns:
  * - 0 if not alphanumeric
  * - 1 if alphanumeric
  */
-int is_valid_name(char* string) {
-    if (string == NULL) {
+int is_valid_path(char* path) {
+    if (path == NULL) {
         return 0;
     }
 
     int ix = 0;
-    while (string[ix] != '\0') {
-        if (isalnum(string[ix]) == 0 && string[ix] != '_') {
+    while (path[ix] != '\0') {
+        if (isalnum(path[ix]) == 0 && path[ix] != '_' && path[ix] != '/') {
             return 0;
         }
 
