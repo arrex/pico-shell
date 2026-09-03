@@ -4,7 +4,7 @@ int badcommandTooManyTokens(void);
 int badCommandErrorOccurred(void);
 int badcommandFileDoesNotExist(void);
 int badcommandVariableDoesNotExist(void);
-int badcommandNameNotAlphanum(void);
+int badcommandNotAlphanum(void);
 int badcommandDirDoesNotExist(void);
 int badCommandProcessTableFull(void);
 int badcommandInvalidPolicy(void);
