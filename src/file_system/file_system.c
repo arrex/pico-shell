@@ -84,7 +84,7 @@ int root_dir_init() {
 
     struct inode root_inode = {.file_type = DIRECTORY_T,
                                .parent_inode = ROOT_INODE,  // self reference
-                               .size = sizeof(struct dirent) * 2,
+                               .size = 0,
                                .blocks_occupied = 1,
                                .extent_count = 1,
                                .extents = {ext}};
@@ -99,23 +99,20 @@ int root_dir_init() {
     }
 
     struct dirent curr_dir = {
+        .valid = true,
         .filename = ".",
         .inode = ROOT_INODE,
     };
+    if (dir_add(ROOT_INODE, &curr_dir) != 0) {
+        return -1;
+    }
 
     struct dirent par_dir = {
+        .valid = true,
         .filename = "..",
         .inode = ROOT_INODE,
     };
-
-    block data;
-    memcpy(&data, &curr_dir, sizeof(struct dirent));
-    memcpy(&data[sizeof(struct dirent)], &par_dir, sizeof(struct dirent));
-    // write back
-    if (data_block_write(&data, data_block) != 0) {
-        // rollback
-        inode_free(ROOT_INODE);
-        data_block_free(data_block);
+    if (dir_add(ROOT_INODE, &par_dir) != 0) {
         return -1;
     }
 

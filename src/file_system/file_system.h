@@ -22,7 +22,7 @@
 #define INODE_TABLE_BLOCKS 5
 #define DATA_REGION_START 8
 
-#define MAX_FILENAME_LEN 60
+#define MAX_FILENAME_LEN 59
 #define MAX_EXTENTS 4
 
 enum file_type { UNUSED_T, FILE_T, DIRECTORY_T };
