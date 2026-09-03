@@ -14,29 +14,29 @@
  * scans all the directory entries of the specified inode and matches on
  * given filename.
  *
- * returns true if directory entry matching filename found, else false.
+ * returns the inode number if directory entry matching filename found, else -1.
  */
-bool dir_lookup(int inode_num, const char* filename) {
+int dir_lookup(int inode_num, const char* filename) {
     if (filename == NULL) {
         fprintf(stderr, "Warning: filename cannot be NULL\n");
-        return false;
+        return -1;
     }
 
     if (inode_num < 0 || inode_num >= NUM_INODES) {
         fprintf(stderr, "Warning: inode number %d is out of bounds\n",
                 inode_num);
-        return false;
+        return -1;
     }
 
     struct inode inode;
     if (inode_read(&inode, inode_num) != 0) {
-        return false;
+        return -1;
     }
 
     if (inode.file_type != DIRECTORY_T) {
         fprintf(stderr, "Warning: the inode at slot %d is not a directory\n",
                 inode_num);
-        return false;
+        return -1;
     }
 
     for (int i = 0; i < inode.extent_count; i++) {
@@ -47,7 +47,7 @@ bool dir_lookup(int inode_num, const char* filename) {
             int data_block = ext.data_start + b;
 
             if (data_block_read(&data, data_block) != 0) {
-                return false;
+                return -1;
             }
 
             for (int offset = 0; offset < BLOCK_SIZE;
@@ -56,13 +56,13 @@ bool dir_lookup(int inode_num, const char* filename) {
                 memcpy(&dirent, data + offset, sizeof(struct dirent));
                 // ensure that directory is a valid entry
                 if (dirent.valid && strcmp(dirent.filename, filename) == 0) {
-                    return true;
+                    return dirent.inode;
                 }
             }
         }
     }
 
-    return false;
+    return -1;
 }
 
 /*
@@ -70,26 +70,26 @@ bool dir_lookup(int inode_num, const char* filename) {
  *
  * returns 0 in case of success, else -1.
  */
-int dir_add(int inode_num, struct dirent* new_dirent) {
+int dir_add(int inum, struct dirent* new_dirent) {
     if (new_dirent == NULL) {
         fprintf(stderr, "Warning: new directory entry cannot be NULL\n");
         return -1;
     }
 
-    if (inode_num < 0 || inode_num >= NUM_INODES) {
+    if (inum < 0 || inum >= NUM_INODES) {
         fprintf(stderr, "Warning: inode number %d is out of bounds\n",
-                inode_num);
+                inum);
         return -1;
     }
 
     struct inode inode;
-    if (inode_read(&inode, inode_num) != 0) {
+    if (inode_read(&inode, inum) != 0) {
         return -1;
     }
 
     if (inode.file_type != DIRECTORY_T) {
         fprintf(stderr, "Warning: the inode at slot %d is not a directory\n",
-                inode_num);
+                inum);
         return -1;
     }
 
@@ -157,7 +157,7 @@ int dir_add(int inode_num, struct dirent* new_dirent) {
             inode.extent_count++;
         } else {
             fprintf(stderr, "Warning: could not update extent list of inode %d",
-                    inode_num);
+                    inum);
             // rollback
             data_block_free(new_data_block);
             return -1;
@@ -191,7 +191,7 @@ int dir_add(int inode_num, struct dirent* new_dirent) {
         return -1;
     }
 
-    if (inode_write(&inode, inode_num) != 0) {
+    if (inode_write(&inode, inum) != 0) {
         // rollback
         if (data_block_free(new_data_block) != 0) {
             fprintf(stderr,
