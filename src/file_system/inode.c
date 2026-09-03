@@ -33,6 +33,7 @@ int inode_alloc(struct inode* inode) {
     if (slot == -1) {
         return -1;
     }
+    inode->inum = slot;
 
     // write inode entry in table
     if (inode_write(inode, slot) != 0) {
