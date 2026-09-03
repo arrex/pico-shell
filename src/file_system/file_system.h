@@ -22,7 +22,7 @@
 #define INODE_TABLE_BLOCKS 5
 #define DATA_REGION_START 8
 
-#define MAX_FILENAME_LEN 60
+#define MAX_FILENAME_LEN 59
 #define MAX_EXTENTS 4
 
 enum file_type { UNUSED_T, FILE_T, DIRECTORY_T };
@@ -37,8 +37,8 @@ typedef struct superblock {
     int block_size;  // in bytes
 } superblock;
 
-void fs_init();
-int fs_create(const char* path, enum file_type type);
+int fs_init();
+int fs_create(char* path, enum file_type type);
 void fs_delete();
 void fs_read();
 void fs_write();

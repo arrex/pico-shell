@@ -4,8 +4,8 @@
 #include "../utils/utils.h"
 
 int touch(char* filename) {
-    if (is_valid_name(filename) != 1) {
-        return badcommandNameNotAlphanum();
+    if (is_valid_path(filename) != 1) {
+        return badcommandNotAlphanum();
     }
 
     FILE* fptr;

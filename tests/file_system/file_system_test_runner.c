@@ -40,7 +40,7 @@ int main(void) {
     RUN_TEST(test_inode_free_invalid_inputs);
     RUN_TEST(test_inode_read_reads_inode_at_requested_slot);
     RUN_TEST(test_inode_read_invalid_inputs);
-    RUN_TEST(test_inode_write_updates_only_requested_inode);
+    RUN_TEST(test_inode_write);
     RUN_TEST(test_inode_write_invalid_inputs);
 
     // data block layer tests
