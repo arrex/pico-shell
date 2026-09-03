@@ -42,6 +42,7 @@ add_executable(picoshell
     src/file_system/disk.c
     src/file_system/file_system.c
     src/file_system/inode.c
+    src/file_system/pathname.c
     src/memory/memory.c
     src/memory/frame_store.c
     src/memory/variable_store.c
