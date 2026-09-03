@@ -13,5 +13,5 @@ void test_inode_free_invalid_inputs(void);
 void test_inode_read_reads_inode_at_requested_slot(void);
 void test_inode_read_invalid_inputs(void);
 // INODE_WRITE
-void test_inode_write_updates_only_requested_inode(void);
+void test_inode_write(void);
 void test_inode_write_invalid_inputs(void);
