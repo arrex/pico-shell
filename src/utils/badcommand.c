@@ -30,7 +30,7 @@ int badcommandVariableDoesNotExist() {
     return 6;
 }
 
-int badcommandNameNotAlphanum() {
+int badcommandNotAlphanum() {
     printf("Bad command: Directory/file name not alphanumeric\n");
     return 7;
 }

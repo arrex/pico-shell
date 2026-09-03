@@ -1,2 +1,2 @@
-int is_valid_name(char* string);
+int is_valid_path(char* path);
 int ceili(int n, int k);
