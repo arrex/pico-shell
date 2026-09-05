@@ -1,12 +1,9 @@
-#include "mkdir.h"
-
 #include <stdlib.h>
-#include <sys/stat.h>
 
+#include "../file_system/file_system.h"
 #include "../memory/memory.h"
 #include "../utils/badcommand.h"
 #include "../utils/utils.h"
-#include "../file_system/file_system.h"
 
 const int mmkdir(char* path) {
     // Fetch from memory if preceded by '$' sign

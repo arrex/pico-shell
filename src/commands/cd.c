@@ -1,5 +1,4 @@
-#include <unistd.h>
-
+#include "../file_system/file_system.h"
 #include "../utils/badcommand.h"
 #include "../utils/utils.h"
 
@@ -8,7 +7,7 @@ int cd(char* dirname) {
         return badcommandNotAlphanum();
     }
 
-    if (chdir(dirname) != 0) {
+    if (fs_chdir(dirname) != 0) {
         return badcommandDirDoesNotExist();
     }
 

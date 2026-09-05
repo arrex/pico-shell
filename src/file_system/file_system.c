@@ -5,13 +5,15 @@
 #include <string.h>
 
 #include "block_layer.h"
-#include "pathname.h"
 #include "data_block.h"
 #include "directory.h"
 #include "inode.h"
+#include "pathname.h"
 
 int superblock_init();
 int root_dir_init();
+
+struct inode cwd;
 
 /*
  * initializes the entire file system by writing the superblock and the
@@ -33,6 +35,9 @@ int fs_init() {
         fprintf(stderr, "Warning: could not initialize root directory\n");
         return -1;
     }
+
+    // set cwd to root
+    inode_read(&cwd, ROOT_INODE);
 
     return 0;
 }
@@ -101,6 +106,24 @@ int root_dir_init() {
     return 0;
 }
 
+int fs_chdir(char* dest_path) {
+    if (dest_path == NULL) {
+        fprintf(stderr, "Warning: path cannot be null\n");
+        return -1;
+    }
+
+    struct inode dest_inode;
+    path_lookup(&dest_inode, dest_path);
+    if (dest_inode.file_type != DIRECTORY_T) {
+        fprintf(stderr, "Warning: destination is not a directory\n");
+        return -1;
+    }
+
+    // change cwd to destination inode
+    cwd = dest_inode;
+    return 0;
+}
+
 /*
  * creates a file of the specified type. we expose a single create primitive in
  * our file system since directories are essentially structured files.
@@ -121,7 +144,7 @@ int fs_create(char* path, enum file_type type) {
 
     struct inode inode = {
         .file_type = type,
-        .inum = -1, // will be mutated by inode_alloc
+        .inum = -1,  // will be mutated by inode_alloc
         .size = 0,
         .blocks_occupied = 0,
         .extent_count = 0,
@@ -135,7 +158,9 @@ int fs_create(char* path, enum file_type type) {
     }
 
     if (dir_lookup(dir_inode.inum, name) != -1) {
-        fprintf(stderr, "Warning: entry with name %s already exists in directory\n", name);
+        fprintf(stderr,
+                "Warning: entry with name %s already exists in directory\n",
+                name);
         return -1;
     }
 
@@ -173,7 +198,7 @@ int fs_create(char* path, enum file_type type) {
         };
         memcpy(&par_link.filename, name, MAX_FILENAME_LEN);
 
-        if (dir_add(dir_inode.inum, &par_link) != 0)  {
+        if (dir_add(dir_inode.inum, &par_link) != 0) {
             return -1;
         }
     }

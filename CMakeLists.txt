@@ -29,6 +29,7 @@ add_executable(picoshell
     src/commands/fork.c
     src/commands/ls.c
     src/commands/mkdir.c
+    src/commands/rmdir.c
     src/commands/touch.c
     src/commands/print.c
     src/commands/quit.c

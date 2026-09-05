@@ -1,1 +1,0 @@
-#define DIRECTORY_PERMS 0777

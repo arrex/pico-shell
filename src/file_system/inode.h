@@ -10,7 +10,7 @@ typedef struct extent {
 
 typedef struct inode {
     enum file_type file_type;
-    int inum;     // stores inode number
+    int inum;             // stores inode number
     int size;             // size of file/dir content in bytes
     int blocks_occupied;  // num data block occupied
     int extent_count;
