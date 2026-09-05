@@ -77,8 +77,7 @@ int dir_add(int inum, struct dirent* new_dirent) {
     }
 
     if (inum < 0 || inum >= NUM_INODES) {
-        fprintf(stderr, "Warning: inode number %d is out of bounds\n",
-                inum);
+        fprintf(stderr, "Warning: inode number %d is out of bounds\n", inum);
         return -1;
     }
 

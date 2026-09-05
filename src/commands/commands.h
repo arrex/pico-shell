@@ -1,10 +1,10 @@
 int echo(char* var);
 int exec(char* programs[], char* policy);
 int help();
-int cd(char* dirname);
+int cd(char* path);
 int ffork(char** args, int args_size);
 int ls();
-int mmkdir(char* dirname);
+int mmkdir(char* path);
 int touch(char* filename);
 int print(char* var);
 int quit();
