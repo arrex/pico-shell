@@ -94,6 +94,16 @@ int interpreter(char* command_args[], int args_size) {
 
         return mmkdir(command_args[1]);
 
+    } else if (strcmp(command_args[0], "rmdir") == 0) {
+        if (args_size < 2) {
+            return badcommandMissingArguments();
+        }
+
+        if (args_size > 2) {
+            return badcommandTooManyTokens();
+        }
+
+        return rmdir(command_args[1]);
     } else if (strcmp(command_args[0], "touch") == 0) {
         if (args_size < 2) {
             return badcommandMissingArguments();

@@ -33,6 +33,7 @@ add_executable(picoshell
     src/commands/touch.c
     src/commands/print.c
     src/commands/quit.c
+    src/commands/rmdir.c
     src/commands/run.c
     src/commands/set.c
     src/core/shell.c

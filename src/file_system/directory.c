@@ -1,6 +1,5 @@
 #include "directory.h"
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -63,6 +62,56 @@ int dir_lookup(int inode_num, const char* filename) {
     }
 
     return -1;
+}
+
+/*
+ * scans the contents of a directory given the inode number to determine if it
+ * is empty or not.
+ *
+ * returns 1 if the directory is empty, 0 if it isn't, and -1 in case of error.
+ */
+int dir_is_empty(int inum) {
+    if (inum < 0 || inum >= NUM_INODES) {
+        fprintf(stderr, "Warning: inode number %d is out of bounds\n", inum);
+        return -1;
+    }
+
+    struct inode inode;
+    if (inode_read(&inode, inum) != 0) {
+        return -1;
+    }
+
+    if (inode.file_type != DIRECTORY_T) {
+        fprintf(stderr, "Warning: the inode at slot %d is not a directory\n",
+                inum);
+        return -1;
+    }
+
+    for (int i = 0; i < inode.extent_count; i++) {
+        extent ext = inode.extents[i];
+
+        for (int b = 0; b < ext.block_count; b++) {
+            block data;
+            int data_block = ext.data_start + b;
+
+            if (data_block_read(&data, data_block) != 0) {
+                return -1;
+            }
+
+            for (int offset = 0; offset < BLOCK_SIZE;
+                 offset += sizeof(struct dirent)) {
+                struct dirent dirent;
+                memcpy(&dirent, data + offset, sizeof(struct dirent));
+                // ensure that directory is a valid entry and not "." or ".."
+                if (dirent.valid && strcmp(dirent.filename, ".") != 0 &&
+                    strcmp(dirent.filename, "..") != 0) {
+                    return 0;
+                }
+            }
+        }
+    }
+
+    return 1;
 }
 
 /*

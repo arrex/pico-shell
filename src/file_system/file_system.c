@@ -106,14 +106,14 @@ int root_dir_init() {
     return 0;
 }
 
-int fs_chdir(char* dest_path) {
-    if (dest_path == NULL) {
+int fs_chdir(char* path) {
+    if (path == NULL) {
         fprintf(stderr, "Warning: path cannot be null\n");
         return -1;
     }
 
     struct inode dest_inode;
-    path_lookup(&dest_inode, dest_path);
+    path_lookup(&dest_inode, path);
     if (dest_inode.file_type != DIRECTORY_T) {
         fprintf(stderr, "Warning: destination is not a directory\n");
         return -1;
@@ -201,6 +201,81 @@ int fs_create(char* path, enum file_type type) {
         if (dir_add(dir_inode.inum, &par_link) != 0) {
             return -1;
         }
+    }
+
+    return 0;
+}
+
+/*
+ * deletes a resource at the specified path. resource could be a file or a
+ * directory.
+ *
+ * returns 0 in case of success, else -1.
+ */
+int fs_delete(char* path, enum file_type type) {
+    if (path == NULL) {
+        fprintf(stderr, "Warning: path cannot be null\n");
+        return -1;
+    }
+
+    if (strcmp(path, "/") == 0) {
+        fprintf(stderr, "Warning: cannot delete root directory\n");
+        return -1;
+    }
+
+    if (type != FILE_T && type != DIRECTORY_T) {
+        fprintf(stderr, "Warning: invalid file type %d\n", type);
+        return -1;
+    }
+
+    struct inode dir_inode, inode;
+    char name[MAX_FILENAME_LEN];
+
+    if (path_lookup_parent(&dir_inode, path, name) != 0) {
+        return -1;
+    }
+
+    int inum = dir_lookup(dir_inode.inum, name);
+    if (inum == -1) {
+        fprintf(stderr,
+                "Warning: entry with name %s does not exist in directory\n",
+                name);
+        return -1;
+    }
+
+    if (inode_read(&inode, inum) != 0) {
+        fprintf(stderr, "WOPW\n");
+        return -1;
+    }
+
+    // if component is dir, check if it is empty first
+    if (inode.file_type == DIRECTORY_T && dir_is_empty(inode.inum) != 1) {
+        fprintf(stderr,
+                "Warning: directory is not empty, remove its contents first\n");
+        return -1;
+    }
+
+    // delete dirent from parent dir
+    // TODO: implement compaction?
+    if (dir_remove(dir_inode.inum, name) != 0) {
+        return -1;
+    }
+
+    // free all data data blocks held by resource
+    for (int i = 0; i < inode.extent_count; i++) {
+        extent ext = inode.extents[i];
+
+        for (int j = 0; j < ext.block_count; j++) {
+            int dblock = ext.data_start + j;
+            if (data_block_free(dblock) == -1) {
+                return -1;
+            }
+        }
+    }
+
+    // free resource inode
+    if (inode_free(inode.inum) == -1) {
+        return -1;
     }
 
     return 0;
