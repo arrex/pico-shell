@@ -38,8 +38,9 @@ typedef struct superblock {
 } superblock;
 
 int fs_init();
-int fs_chdir(char* dest_path);
+int fs_chdir(char* path);
 int fs_create(char* path, enum file_type type);
-void fs_delete();
+int fs_delete(char* path, enum file_type type);
+// TODO: implement primitives below
 void fs_read();
 void fs_write();
