@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "block_layer.h"
+#include "block.h"
 #include "file_system.h"
 
 int data_bitmap_find_available_block();
