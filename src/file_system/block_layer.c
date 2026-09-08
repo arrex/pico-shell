@@ -10,17 +10,18 @@
  *
  * returns 0 in case of success, else -1.
  */
-int block_read(block* buf, int block_num) {
+int block_read(block* buf, int bnum) {
     if (buf == NULL) {
-        fprintf(stderr, "Warning: input buffer is null\n");
+        fprintf(stderr, "[block] error: input buffer is null\n");
         return -1;
     }
 
-    if (block_num < 0 || block_num >= NUM_BLOCKS) {
-        fprintf(stderr, "Warning: invalid block number %d\n", block_num);
+    if (bnum < 0 || bnum >= NUM_BLOCKS) {
+        fprintf(stderr, "[block] error: invalid block number %d\n", bnum);
+        return -1;
     }
 
-    return disk_read(buf, BLOCK_SIZE, block_num * BLOCK_SIZE);
+    return disk_read(buf, BLOCK_SIZE, bnum * BLOCK_SIZE);
 }
 
 /*
@@ -28,15 +29,16 @@ int block_read(block* buf, int block_num) {
  *
  * returns 0 in case of success, else -1.
  */
-int block_write(const block* buf, int block_num) {
+int block_write(const block* buf, int bnum) {
     if (buf == NULL) {
-        fprintf(stderr, "Warning: input buffer is null\n");
+        fprintf(stderr, "[block] error: input buffer is null\n");
         return -1;
     }
 
-    if (block_num < 0 || block_num >= NUM_BLOCKS) {
-        fprintf(stderr, "Warning: invalid block number %d\n", block_num);
+    if (bnum < 0 || bnum >= NUM_BLOCKS) {
+        fprintf(stderr, "[block] error: invalid block number %d\n", bnum);
+        return -1;
     }
 
-    return disk_write(buf, BLOCK_SIZE, block_num * BLOCK_SIZE);
+    return disk_write(buf, BLOCK_SIZE, bnum * BLOCK_SIZE);
 }
