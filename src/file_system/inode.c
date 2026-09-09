@@ -9,69 +9,70 @@
 #include "block.h"
 #include "file_system.h"
 
-int inode_bitmap_find_available_slot();
-int inode_bitmap_alloc(int slot);
-int inode_bitmap_free(int slot);
+static int inode_bitmap_find_free();
+static int inode_bitmap_alloc(int inum);
+static int inode_bitmap_free(int inum);
 
 /*
  * this function allocates an inode into the file system. it
- * finds an available slot and performs the writes to disk. to
- * update an existing inode, refer to `inode_write()`.
+ * finds an available slot and performs the writes to disk.
+ * it also mutates the inum of the input struct.
  *
- * returns slot if allocated, else -1.
+ * to update an existing inode, refer to `inode_update()`.
+ *
+ * returns 0 if allocated, else -1.
  */
 int inode_alloc(struct inode* inode) {
     if (inode == NULL) {
-        fprintf(stderr,
-                "Warning: cannot allocate an inode whose pointer is NULL\n");
+        fprintf(
+            stderr,
+            "[inode] error: cannot allocate an inode whose pointer is NULL\n");
         return -1;
     }
 
-    // find empty slot in inode table
-    int slot = inode_bitmap_find_available_slot();
-    // no free slots
-    if (slot == -1) {
+    int inum;
+    if ((inum = inode_bitmap_find_free()) == -1) {
         return -1;
     }
-    inode->inum = slot;
+    inode->inum = inum;
 
-    // write inode entry in table
-    if (inode_write(inode, slot) != 0) {
+    // write inode to table
+    int bnum = IBLOCK(inum);
+    block block;
+    if (block_read(&block, bnum) != 0) {
+        return -1;
+    }
+
+    int offset = IOFFSET(inum);
+    memcpy(&block[offset], inode, sizeof(struct inode));
+    if (block_write(&block, bnum) != 0) {
         return -1;
     }
 
     // update inode bitmap
-    if (inode_bitmap_alloc(slot) != 0) {
+    if (inode_bitmap_alloc(inum) != 0) {
         return -1;
     }
 
-    // success
-    return slot;
+    return 0;
 }
 
 /*
- * this function frees an inode from the file system. it will clear
- * the inode entry from the bitmap only.
+ * this function frees an inode from the file system by modifying the bitmap
+ * only. we do not clear the actual entry on disk to save an I/O.
  *
- * returns slot in case of success, else -1.
+ * returns 0 in case of success, else -1.
  */
-int inode_free(int slot) {
-    if (slot < 0 || slot > NUM_INODES) {
-        fprintf(stderr, "Warning: invalid inode slot number %d\n", slot);
+int inode_free(int inum) {
+    if (inum < 0 || inum > NUM_INODES) {
+        fprintf(stderr, "[inode] error: invalid inode number %d\n", inum);
     }
 
-    // load inode bitmap block
-    block bitmap_block;
-    if (block_read(&bitmap_block, INODE_BITMAP_BLOCK) != 0) {
+    if (inode_bitmap_free(inum) != 0) {
         return -1;
     }
 
-    // update bitmap
-    if (inode_bitmap_free(slot) != 0) {
-        return -1;
-    }
-
-    return slot;
+    return 0;
 }
 
 /*
@@ -79,27 +80,26 @@ int inode_free(int slot) {
  *
  * returns 0 in case of success, else -1.
  */
-int inode_read(struct inode* out, int slot) {
-    if (out == NULL) {
-        fprintf(stderr, "Warning: cannot read inode into a NULL buffer\n");
+int inode_read(struct inode* inode, int inum) {
+    if (inode == NULL) {
+        fprintf(stderr,
+                "[inode] error: cannot read inode into a NULL buffer\n");
         return -1;
     }
 
-    if (slot < 0 || slot >= NUM_INODES) {
-        fprintf(stderr, "Warning: invalid inode slot number %d\n", slot);
+    if (inum < 0 || inum >= NUM_INODES) {
+        fprintf(stderr, "[inode] error: invalid inode number %d\n", inum);
         return -1;
     }
 
-    // load in inode table block
-    int block_num = INODE_TABLE_START + (slot * INODE_SIZE) / BLOCK_SIZE;
-    block table_block;
-    if (block_read(&table_block, block_num) != 0) {
+    int bnum = IBLOCK(inum);
+    block block;
+    if (block_read(&block, bnum) != 0) {
         return -1;
     }
 
-    // fetch inode in table block
-    int offset = INODE_SIZE * (slot % (BLOCK_SIZE / INODE_SIZE));
-    memcpy(out, &table_block[offset], sizeof(struct inode));
+    int offset = IOFFSET(inum);
+    memcpy(inode, &block[offset], sizeof(struct inode));
 
     return 0;
 }
@@ -111,30 +111,27 @@ int inode_read(struct inode* out, int slot) {
  *
  * returns 0 in case of success, else -1
  */
-int inode_write(struct inode* in, int slot) {
-    if (in == NULL) {
-        fprintf(stderr, "Warning: cannot write NULL inode pointer to disk\n");
+int inode_update(const struct inode* inode, int inum) {
+    if (inode == NULL) {
+        fprintf(stderr,
+                "[inode] error: cannot write NULL inode pointer to disk\n");
         return -1;
     }
 
-    if (slot < 0 || slot >= NUM_INODES) {
-        fprintf(stderr, "Warning: invalid inode slot number %d\n", slot);
+    if (inum < 0 || inum >= NUM_INODES) {
+        fprintf(stderr, "[inode] error: invalid inode number %d\n", inum);
         return -1;
     }
 
-    // load in inode table block
-    int block_num = INODE_TABLE_START + (slot * INODE_SIZE) / BLOCK_SIZE;
-    block table_block;
-    if (block_read(&table_block, block_num) != 0) {
+    int bnum = IBLOCK(inum);
+    block block;
+    if (block_read(&block, bnum) != 0) {
         return -1;
     }
 
-    // perform update to table block
-    int offset = INODE_SIZE * (slot % (BLOCK_SIZE / INODE_SIZE));
-    memcpy(&table_block[offset], in, sizeof(struct inode));
-
-    // write table block back to disk
-    if (block_write(&table_block, block_num) != 0) {
+    int offset = IOFFSET(inum);
+    memcpy(&block[offset], inode, sizeof(struct inode));
+    if (block_write(&block, bnum) != 0) {
         return -1;
     }
 
@@ -148,27 +145,26 @@ int inode_write(struct inode* in, int slot) {
  * returns the inode number if an available one is found. otherwise,
  * returns -1.
  */
-int inode_bitmap_find_available_slot() {
-    // load inode bitmap block
+static int inode_bitmap_find_free() {
     block bitmap;
     block_read(&bitmap, INODE_BITMAP_BLOCK);
 
-    // we want ceil(n, k) where n = num of inodes and k = 8 since 1 byte = 8
+    // we want ceil(n / k) where n = num of inodes and k = 8 since 1 byte = 8
     // bits
     for (int i = 0; i < ceili(NUM_INODES, 8); i++) {
         uint8_t byte = bitmap[i];
 
         for (int j = 0; j < 8; j++) {
-            int slot = i * 8 + j;
+            int inum = i * 8 + j;
 
             // out of bounds
-            if (slot >= NUM_INODES) {
+            if (inum >= NUM_INODES) {
                 return -1;
             }
 
             // bitwise AND to see if it is taken
             if (!(byte & (0x80 >> j))) {
-                return slot;
+                return inum;
             }
         }
     }
@@ -182,15 +178,16 @@ int inode_bitmap_find_available_slot() {
  *
  * returns 0 in case of success, else -1.
  */
-int inode_bitmap_alloc(int slot) {
+static int inode_bitmap_alloc(int inum) {
     block bitmap;
     block_read(&bitmap, INODE_BITMAP_BLOCK);
 
-    int byte_ix = slot / 8;
-    int bit_ix = slot % 8;
+    int byte_ix = inum / 8;
+    int bit_ix = inum % 8;
 
     if (bitmap[byte_ix] & (0x80 >> bit_ix)) {
-        fprintf(stderr, "Warning: slot %d is already taken\n", slot);
+        fprintf(stderr, "[inode] error: inode number %d is already taken\n",
+                inum);
         return -1;
     }
 
@@ -209,15 +206,16 @@ int inode_bitmap_alloc(int slot) {
  *
  * returns 0 in case of success, else -1.
  */
-int inode_bitmap_free(int slot) {
+static int inode_bitmap_free(int inum) {
     block bitmap;
     block_read(&bitmap, INODE_BITMAP_BLOCK);
 
-    int byte_ix = slot / 8;
-    int bit_ix = slot % 8;
+    int byte_ix = inum / 8;
+    int bit_ix = inum % 8;
 
     if ((bitmap[byte_ix] & (0x80 >> bit_ix)) == 0) {
-        fprintf(stderr, "Warning: slot %d is already free\n", slot);
+        fprintf(stderr, "[inode] error: inode number %d is already free\n",
+                inum);
         return -1;
     }
 
