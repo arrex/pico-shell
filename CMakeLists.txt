@@ -39,7 +39,8 @@ add_executable(picoshell
     src/core/shell.c
     src/core/interpreter.c
     src/file_system/block.c
-    src/file_system/data_block.c
+    src/file_system/bitmap.c
+    src/file_system/data.c
     src/file_system/directory.c
     src/file_system/disk.c
     src/file_system/file_system.c

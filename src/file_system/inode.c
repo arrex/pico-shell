@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../utils/utils.h"
+#include "bitmap.h"
 #include "block.h"
 #include "file_system.h"
 
@@ -138,93 +139,14 @@ int inode_update(const struct inode* inode, int inum) {
     return 0;
 }
 
-/*
- * this function linearly scans the inode bitmap until it finds
- * an available inode.
- *
- * returns the inode number if an available one is found. otherwise,
- * returns -1.
- */
 static int inode_bitmap_find_free() {
-    block bitmap;
-    block_read(&bitmap, INODE_BITMAP_BLOCK);
-
-    // we want ceil(n / k) where n = num of inodes and k = 8 since 1 byte = 8
-    // bits
-    for (int i = 0; i < ceili(NUM_INODES, 8); i++) {
-        uint8_t byte = bitmap[i];
-
-        for (int j = 0; j < 8; j++) {
-            int inum = i * 8 + j;
-
-            // out of bounds
-            if (inum >= NUM_INODES) {
-                return -1;
-            }
-
-            // bitwise AND to see if it is taken
-            if (!(byte & (0x80 >> j))) {
-                return inum;
-            }
-        }
-    }
-
-    // no inode available
-    return -1;
+    return bitmap_find_free(INODE_BITMAP_BLOCK, NUM_INODES);
 }
 
-/*
- * modifies the inode bitmap to claim an inode.
- *
- * returns 0 in case of success, else -1.
- */
 static int inode_bitmap_alloc(int inum) {
-    block bitmap;
-    block_read(&bitmap, INODE_BITMAP_BLOCK);
-
-    int byte_ix = inum / 8;
-    int bit_ix = inum % 8;
-
-    if (bitmap[byte_ix] & (0x80 >> bit_ix)) {
-        fprintf(stderr, "[inode] error: inode number %d is already taken\n",
-                inum);
-        return -1;
-    }
-
-    bitmap[byte_ix] |= (0x80 >> bit_ix);
-
-    // write back to disk
-    if (block_write(&bitmap, INODE_BITMAP_BLOCK) != 0) {
-        return -1;
-    }
-
-    return 0;
+    return bitmap_alloc(INODE_BITMAP_BLOCK, inum);
 }
 
-/*
- * modifies the inode bitmap to release an inode.
- *
- * returns 0 in case of success, else -1.
- */
 static int inode_bitmap_free(int inum) {
-    block bitmap;
-    block_read(&bitmap, INODE_BITMAP_BLOCK);
-
-    int byte_ix = inum / 8;
-    int bit_ix = inum % 8;
-
-    if ((bitmap[byte_ix] & (0x80 >> bit_ix)) == 0) {
-        fprintf(stderr, "[inode] error: inode number %d is already free\n",
-                inum);
-        return -1;
-    }
-
-    bitmap[byte_ix] &= ~(0x80 >> bit_ix);
-
-    // write back to disk
-    if (block_write(&bitmap, INODE_BITMAP_BLOCK) != 0) {
-        return -1;
-    }
-
-    return 0;
+    return bitmap_free(INODE_BITMAP_BLOCK, inum);
 }
