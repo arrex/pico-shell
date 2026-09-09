@@ -1,60 +1,64 @@
-#include "data_block.h"
+#include "data.h"
 
 #include <stdio.h>
 
 #include "block.h"
 #include "file_system.h"
 
-int data_bitmap_find_available_block();
-int data_bitmap_alloc(int data_block);
-int data_bitmap_free(int data_block);
+static int data_bitmap_find_free();
+static int data_bitmap_alloc(int dnum);
+static int data_bitmap_free(int dnum);
 
 /*
  * this function allocates a data block into the file system. it
- * finds an available data block and performs the writes to disk.
+ * finds an available data block from the bitmap and performs the
+ * write to disk.
  *
  * returns data block number if allocated, else -1.
  */
-int data_block_alloc() {
-    int data_block = data_bitmap_find_available_block();
-    // no free block numbers
-    if (data_block == -1) {
+int data_alloc() {
+    int dnum;
+    if ((dnum = data_bitmap_find_free()) == -1) {
         return -1;
     }
 
-    // update bitmap
-    if (data_bitmap_alloc(data_block) != 0) {
+    // write to disk
+    int bnum = DBLOCK(dnum);
+    block block = {0};
+    if (block_write(&block, bnum) != 0) {
         return -1;
     }
 
-    // zero out data block when claiming it
-    block init = {0};
-    if (data_block_write(&init, data_block) != 0) {
+    // update data bitmap
+    if (data_bitmap_alloc(dnum) != 0) {
+        fprintf(stderr, "[data] error: data block number %d is already taken\n",
+                dnum);
         return -1;
     }
 
-    return data_block;
+    return dnum;
 }
 
 /*
- * this function frees a data block from the file system.
- * it will clear the data block entry from the bitmap.
+ * this function frees a data block from the file system by clearing the data
+ * block entry from the bitmap. it does not wipe what the block contains on
+ * disk.
  *
- * returns data block number in case of success, else -1.
+ * returns 0 in case of success, else -1.
  */
-int data_block_free(int data_block) {
-    if (data_block < 0 || data_block >= NUM_DATA_BLOCKS) {
-        fprintf(stderr, "Warning: data block %d is out of bounds\n",
-                data_block);
+int data_free(int dnum) {
+    if (dnum < 0 || dnum >= NUM_DATA_BLOCKS) {
+        fprintf(stderr, "[data] error: data block %d is out of bounds\n", dnum);
         return -1;
     }
 
-    // update bitmap
-    if (data_bitmap_free(data_block) != 0) {
+    if (data_bitmap_free(dnum) != 0) {
+        fprintf(stderr, "[data] error: data block number %d is already free\n",
+                dnum);
         return -1;
     }
 
-    return data_block;
+    return 0;
 }
 
 /*
@@ -62,20 +66,20 @@ int data_block_free(int data_block) {
  *
  * returns 0 in case of success, else -1.
  */
-int data_block_read(block* out, int data_block) {
-    if (out == NULL) {
-        fprintf(stderr, "Warning: cannot read data block into a NULL buffer\n");
+int data_read(block* block, int dnum) {
+    if (block == NULL) {
+        fprintf(stderr,
+                "[data] error: cannot read data block into a NULL buffer\n");
         return -1;
     }
 
-    if (data_block < 0 || data_block >= NUM_DATA_BLOCKS) {
-        fprintf(stderr, "Warning: data block %d is out of bounds\n",
-                data_block);
+    if (dnum < 0 || dnum >= NUM_DATA_BLOCKS) {
+        fprintf(stderr, "[data] error: data block %d is out of bounds\n", dnum);
         return -1;
     }
 
-    int physical_block = DATA_REGION_START + data_block;
-    if (block_read(out, physical_block) != 0) {
+    int bnum = DBLOCK(dnum);
+    if (block_read(block, bnum) != 0) {
         return -1;
     }
 
@@ -88,20 +92,19 @@ int data_block_read(block* out, int data_block) {
  *
  * returns 0 in case of success, else -1.
  */
-int data_block_write(block* in, int data_block) {
-    if (in == NULL) {
-        fprintf(stderr, "Warning: cannot write NULL data block to disk\n");
+int data_update(block* block, int dnum) {
+    if (block == NULL) {
+        fprintf(stderr, "[data] error: cannot write NULL data block to disk\n");
         return -1;
     }
 
-    if (data_block < 0 || data_block >= NUM_DATA_BLOCKS) {
-        fprintf(stderr, "Warning: data block %d is out of bounds\n",
-                data_block);
+    if (dnum < 0 || dnum >= NUM_DATA_BLOCKS) {
+        fprintf(stderr, "[data] error: data block %d is out of bounds\n", dnum);
         return -1;
     }
 
-    int physical_block = DATA_REGION_START + data_block;
-    if (block_write(in, physical_block) != 0) {
+    int bnum = DBLOCK(dnum);
+    if (block_write(block, bnum) != 0) {
         return -1;
     }
 
@@ -115,7 +118,7 @@ int data_block_write(block* in, int data_block) {
  * returns the data block number if an available one is found. otherwise,
  * returns -1.
  */
-int data_bitmap_find_available_block() {
+static int data_bitmap_find_free() {
     block bitmap;
     block_read(&bitmap, DATA_BITMAP_BLOCK);
 
@@ -148,16 +151,14 @@ int data_bitmap_find_available_block() {
  *
  * returns 0 on success, -1 on failure.
  */
-int data_bitmap_alloc(int data_block) {
+int data_bitmap_alloc(int dnum) {
     block bitmap;
     block_read(&bitmap, DATA_BITMAP_BLOCK);
 
-    int byte_ix = data_block / 8;
-    int bit_ix = data_block % 8;
+    int byte_ix = dnum / 8;
+    int bit_ix = dnum % 8;
 
     if (bitmap[byte_ix] & (0x80 >> bit_ix)) {
-        fprintf(stderr, "Warning: block number %d is already taken\n",
-                data_block);
         return -1;
     }
 
@@ -176,16 +177,14 @@ int data_bitmap_alloc(int data_block) {
  *
  * returns 0 on success, -1 on failure.
  */
-int data_bitmap_free(int data_block) {
+int data_bitmap_free(int dnum) {
     block bitmap;
     block_read(&bitmap, DATA_BITMAP_BLOCK);
 
-    int byte_ix = data_block / 8;
-    int bit_ix = data_block % 8;
+    int byte_ix = dnum / 8;
+    int bit_ix = dnum % 8;
 
     if ((bitmap[byte_ix] & (0x80 >> bit_ix)) == 0) {
-        fprintf(stderr, "Warning: block number %d is already free\n",
-                data_block);
         return -1;
     }
 
