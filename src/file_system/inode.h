@@ -1,7 +1,5 @@
 #pragma once
 
-#include "file_system.h"
-
 #define ROOT_INODE 0
 #define NUM_INODES 80  // 16 inodes/block w 5 blocks
 #define NDIRECT 12     // num of direct ptrs
@@ -24,7 +22,8 @@ typedef struct inode {
     int addrs[NDIRECT];   // direct block ptrs
 } inode;
 
-int inode_alloc(struct inode* inode);
-int inode_free(int inum);
-int inode_read(struct inode* inode, int inum);
-int inode_update(const struct inode* inode, int inum);
+int inode_alloc(struct inode*);
+int inode_free(int);
+int inode_read(struct inode*, int);
+int inode_update(const struct inode*, int);
+int inode_datamap(struct inode*, int);
