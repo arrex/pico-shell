@@ -8,6 +8,7 @@
 #include "../utils/utils.h"
 #include "bitmap.h"
 #include "block.h"
+#include "data.h"
 #include "file_system.h"
 
 static int inode_bitmap_find_free();
@@ -137,6 +138,25 @@ int inode_update(const struct inode* inode, int inum) {
     }
 
     return 0;
+}
+
+/*
+ * returns the data block address of the nth block in the inode. If there is no
+ * such block, allocate it.
+ *
+ * returns data block number in case of success, else -1.
+ */
+int inode_datamap(struct inode* inode, int n) {
+    int dnum;
+
+    if ((dnum = inode->addrs[n]) == 0) {
+        if ((dnum = data_alloc()) == -1) {
+            return -1;
+        }
+        inode->addrs[n] = dnum;
+    }
+
+    return dnum;
 }
 
 static int inode_bitmap_find_free() {
