@@ -1,5 +1,5 @@
 #include "../types/types.h"
-#include "file_system.h"
+#include "fs.h"
 
 #define MAX_FILE_SIZE (NDIRECT * BLOCK_SIZE)
 

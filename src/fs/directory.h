@@ -1,7 +1,7 @@
 #include <stdbool.h>
 
 #include "../types/types.h"
-#include "file_system.h"
+#include "fs.h"
 
 typedef struct dirent {
     bool valid;

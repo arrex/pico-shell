@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../file_system/file_system.h"
+#include "../fs/fs.h"
 #include "../memory/memory.h"
 #include "../utils/badcommand.h"
 #include "../utils/utils.h"

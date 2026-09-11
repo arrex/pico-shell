@@ -1,17 +1,17 @@
-#include "file_system.h"
+#include "fs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "block.h"
-#include "data_block.h"
+#include "data.h"
 #include "directory.h"
 #include "inode.h"
 #include "pathname.h"
 
 int superblock_init();
-int root_dir_init();
+int root_init();
 
 struct inode cwd;
 
@@ -22,100 +22,100 @@ struct inode cwd;
  * returns 0 in case of success, else -1.
  */
 int fs_init() {
-    int errCode;
-
-    errCode = superblock_init();
-    if (errCode != 0) {
-        fprintf(stderr, "Warning: could not initialize superblock\n");
+    if (superblock_init() != 0) {
+        fprintf(stderr, "[fs] error: failed to init superblock\n");
         return -1;
     }
 
-    errCode = root_dir_init();
-    if (errCode != 0) {
-        fprintf(stderr, "Warning: could not initialize root directory\n");
+    if (root_init() != 0) {
+        fprintf(stderr, "[fs] error: failed to init root directory\n");
         return -1;
     }
 
     // set cwd to root
-    inode_read(&cwd, ROOT_INODE);
+    if (inode_read(&cwd, ROOT_INODE) != 0) {
+        fprintf(stderr, "[fs] error: failed to set cwd to root\n");
+        return -1;
+    }
 
     return 0;
 }
 
 int superblock_init() {
-    struct superblock superblock = {.file_system_type = FS_TYPE,
+    struct superblock superblock = {.fs_type = FS_TYPE,
                                     .num_inodes = NUM_INODES,
                                     .inodes_table_start = INODE_TABLE_START,
                                     .num_data_blocks = NUM_DATA_BLOCKS,
                                     .block_size = BLOCK_SIZE};
-    block buf = {0};
+
+    block buf;
     memcpy(buf, &superblock, sizeof(struct superblock));
-    block_write(&buf, 0);
+
+    if (block_write(&buf, 0) != 0) {
+        return -1;
+    }
 
     return 0;
 }
 
-int root_dir_init() {
-    int errCode;
-    // bootstrap root dir
-    int data_block = data_block_alloc();
-
-    if (data_block == -1) {
-        // something bad happened...
-        return -1;
-    }
-
-    struct extent ext = {
-        .logical_start = 0, .data_start = data_block, .block_count = 1};
-
-    struct inode root_inode = {.file_type = DIRECTORY_T,
-                               .inum = ROOT_INODE,
-                               .size = 0,
-                               .blocks_occupied = 1,
-                               .extent_count = 1,
-                               .extents = {ext}};
-
-    errCode = inode_alloc(&root_inode);
-    if (errCode != 0) {
-        // something bad happened....
-        // maybe we should check to ensure that inode num is 0 too
-        // rollback
-        data_block_free(data_block);
-        return -1;
-    }
-
-    struct dirent curr_dir = {
-        .valid = true,
-        .filename = ".",
-        .inode = ROOT_INODE,
+/*
+ * initializes the root inode. we don't want to use the file system's create
+ * primitive for this dir since it is a special case. we don't want to allow
+ * users to create "/".
+ *
+ * TODO: find a way to streamline this
+ */
+int root_init() {
+    struct inode root = {
+        .type = DIRECTORY_T,
     };
-    if (dir_add(ROOT_INODE, &curr_dir) != 0) {
+    // invalidate all direct ptrs
+    for (int i = 0; i < NDIRECT; i++) {
+        root.addrs[i] = -1;
+    }
+
+    if (inode_alloc(&root) != 0) {
         return -1;
     }
 
-    struct dirent par_dir = {
+    if (root.inum != ROOT_INODE) {
+        fprintf(
+            stderr,
+            "[fs] error: root inode was allocated to actual %d, expected %d\n",
+            root.inum, ROOT_INODE);
+        return -1;
+    }
+
+    // add dot entries
+    struct dirent curr = {
         .valid = true,
-        .filename = "..",
-        .inode = ROOT_INODE,
+        .name = ".",
+        .inum = root.inum,
     };
-    if (dir_add(ROOT_INODE, &par_dir) != 0) {
+
+    struct dirent par = {
+        .valid = true,
+        .name = "..",
+        .inum = root.inum,
+    };
+
+    if (dir_add(root.inum, &curr) != 0 || dir_add(root.inum, &par) != 0) {
         return -1;
     }
 
-    // success
     return 0;
 }
 
 int fs_chdir(char* path) {
     if (path == NULL) {
-        fprintf(stderr, "Warning: path cannot be null\n");
+        fprintf(stderr, "[fs] error: path cannot be null\n");
         return -1;
     }
 
     struct inode dest_inode;
     path_lookup(&dest_inode, path);
-    if (dest_inode.file_type != DIRECTORY_T) {
-        fprintf(stderr, "Warning: destination is not a directory\n");
+    if (dest_inode.type != DIRECTORY_T) {
+        fprintf(stderr, "[fs] error: destination is not a directory\n");
         return -1;
     }
 
@@ -132,24 +132,26 @@ int fs_chdir(char* path) {
  */
 int fs_create(char* path, enum file_type type) {
     if (path == NULL) {
-        fprintf(stderr, "Warning: path cannot be null\n");
+        fprintf(stderr, "[fs] error: path cannot be null\n");
         return -1;
     }
 
     if (type != FILE_T && type != DIRECTORY_T) {
         // %d specifier since enum types treated as int
-        fprintf(stderr, "Warning: invalid file type %d\n", type);
+        fprintf(stderr, "[fs] error: invalid file type %d\n", type);
         return -1;
     }
 
     struct inode inode = {
-        .file_type = type,
-        .inum = -1,  // will be mutated by inode_alloc
-        .size = 0,
-        .blocks_occupied = 0,
-        .extent_count = 0,
-        .extents = {},
+        .type = type,
+        .num_links =
+            1,  // init to 1 since parent has dirent that points to child
     };
+    // invalidate all direct ptrs
+    for (int i = 0; i < NDIRECT; i++) {
+        inode.addrs[i] = -1;
+    }
+
     struct inode dir_inode;
     char name[MAX_FILENAME_LEN];
 
@@ -159,7 +161,7 @@ int fs_create(char* path, enum file_type type) {
 
     if (dir_lookup(dir_inode.inum, name) != -1) {
         fprintf(stderr,
-                "Warning: entry with name %s already exists in directory\n",
+                "[fs] error: entry with name %s already exists in directory\n",
                 name);
         return -1;
     }
@@ -170,34 +172,34 @@ int fs_create(char* path, enum file_type type) {
 
     // add dot entries if creating a dir
     if (type == DIRECTORY_T) {
-        struct dirent curr_dir = {
+        struct dirent curr = {
             .valid = true,
-            .filename = ".",
-            .inode = inode.inum,
+            .name = ".",
+            .inum = inode.inum,
         };
 
-        if (dir_add(inode.inum, &curr_dir) != 0) {
+        struct dirent par = {
+            .valid = true,
+            .name = "..",
+            .inum = dir_inode.inum,
+        };
+
+        if (dir_add(inode.inum, &curr) != 0 || dir_add(inode.inum, &par) != 0) {
             return -1;
         }
 
-        // link to parent dir
-        struct dirent par_dir = {
-            .valid = true,
-            .filename = "..",
-            .inode = dir_inode.inum,
-        };
-
-        if (dir_add(inode.inum, &par_dir) != 0) {
+        // update parent's num links since ".." dirent in child points to parent
+        dir_inode.num_links++;
+        if (inode_update(&dir_inode, dir_inode.inum) != 0) {
             return -1;
         }
 
         // link new entry in parent dir
         struct dirent par_link = {
             .valid = true,
-            .inode = inode.inum,
+            .inum = inode.inum,
         };
-        memcpy(&par_link.filename, name, MAX_FILENAME_LEN);
-
+        memcpy(&par_link.name, name, MAX_FILENAME_LEN);
         if (dir_add(dir_inode.inum, &par_link) != 0) {
             return -1;
         }
@@ -214,17 +216,17 @@ int fs_create(char* path, enum file_type type) {
  */
 int fs_delete(char* path, enum file_type type) {
     if (path == NULL) {
-        fprintf(stderr, "Warning: path cannot be null\n");
+        fprintf(stderr, "[fs] error: path cannot be null\n");
         return -1;
     }
 
     if (strcmp(path, "/") == 0) {
-        fprintf(stderr, "Warning: cannot delete root directory\n");
+        fprintf(stderr, "[fs] error: cannot delete root directory\n");
         return -1;
     }
 
     if (type != FILE_T && type != DIRECTORY_T) {
-        fprintf(stderr, "Warning: invalid file type %d\n", type);
+        fprintf(stderr, "[fs] error: invalid file type %d\n", type);
         return -1;
     }
 
@@ -238,38 +240,40 @@ int fs_delete(char* path, enum file_type type) {
     int inum = dir_lookup(dir_inode.inum, name);
     if (inum == -1) {
         fprintf(stderr,
-                "Warning: entry with name %s does not exist in directory\n",
+                "[fs] error: entry with name %s does not exist in directory\n",
                 name);
         return -1;
     }
 
     if (inode_read(&inode, inum) != 0) {
-        fprintf(stderr, "WOPW\n");
         return -1;
     }
 
     // if component is dir, check if it is empty first
-    if (inode.file_type == DIRECTORY_T && dir_is_empty(inode.inum) != 1) {
-        fprintf(stderr,
-                "Warning: directory is not empty, remove its contents first\n");
+    if (inode.type == DIRECTORY_T && dir_empty(inode.inum) != 1) {
+        fprintf(
+            stderr,
+            "[fs] error: directory is not empty, remove its contents first\n");
         return -1;
     }
 
     // delete dirent from parent dir
-    // TODO: implement compaction?
     if (dir_remove(dir_inode.inum, name) != 0) {
         return -1;
     }
 
-    // free all data data blocks held by resource
-    for (int i = 0; i < inode.extent_count; i++) {
-        extent ext = inode.extents[i];
+    // if child is dir, then it had ".." entry pointing to parent
+    if (inode.type == DIRECTORY_T) {
+        dir_inode.num_links--;
+        if (inode_update(&dir_inode, dir_inode.inum) != 0) {
+            return -1;
+        }
+    }
 
-        for (int j = 0; j < ext.block_count; j++) {
-            int dblock = ext.data_start + j;
-            if (data_block_free(dblock) == -1) {
-                return -1;
-            }
+    // free all data data blocks held by resource
+    for (int i = 0; i < NDIRECT; i++) {
+        if (data_free(inode.addrs[i]) != 0) {
+            return -1;
         }
     }
 

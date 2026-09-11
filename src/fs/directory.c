@@ -143,7 +143,7 @@ int dir_add(uint inum, const struct dirent* new_dirent) {
         // found hole
         if (!dirent.valid) {
             if (file_write(&inode, (char*)&new_dirent, offset,
-                           sizeof(dirent)) != 0) {
+                           sizeof(dirent)) != sizeof(dirent)) {
                 return -1;
             }
 
@@ -151,7 +151,14 @@ int dir_add(uint inum, const struct dirent* new_dirent) {
         }
     }
 
-    return -1;
+    // did not find any holes in inode's allocated space
+    // write at offset, this file layer will alloc space
+    if (file_write(&inode, (char*)&new_dirent, offset, sizeof(dirent)) !=
+        sizeof(dirent)) {
+        return -1;
+    }
+
+    return 0;
 }
 
 /*

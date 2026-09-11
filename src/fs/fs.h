@@ -1,18 +1,16 @@
 #pragma once
 
-// our own extent-based fs type
-#define FS_TYPE "my_ext"
+#include "inode.h"
 
-#define BLOCK_SIZE 2048  // 2kB
-#define NUM_BLOCKS 64
+// special metadata.. maybe i will come up w smth creative later
+#define FS_TYPE "idk"
 
-#define INODE_SIZE 128  // 128B
-#define NUM_INODES 80   // 16 inodes/block across 5 blocks
-#define ROOT_INODE 0
+#define BLOCK_SIZE 1024  // 1 kB
+#define NUM_BLOCKS 128
 
 // -3 encompasses superblock, inode bitmap, and data bitmap
 #define NUM_DATA_BLOCKS \
-    (NUM_BLOCKS - (NUM_INODES * INODE_SIZE) / BLOCK_SIZE - 3)
+    (NUM_BLOCKS - (NUM_INODES * sizeof(struct inode)) / BLOCK_SIZE - 3)
 
 // file system disk layout
 #define SUPERLOCK_BLOCK 0
@@ -25,11 +23,9 @@
 #define MAX_FILENAME_LEN 59
 #define MAX_EXTENTS 4
 
-enum file_type { UNUSED_T, FILE_T, DIRECTORY_T };
-
 // file system components
 typedef struct superblock {
-    char file_system_type[sizeof(FS_TYPE)];
+    char fs_type[sizeof(FS_TYPE)];
     int num_inodes;
     // stores which disk block marks the start of the inodes table
     int inodes_table_start;

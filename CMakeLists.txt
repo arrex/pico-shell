@@ -38,14 +38,15 @@ add_executable(picoshell
     src/commands/set.c
     src/core/shell.c
     src/core/interpreter.c
-    src/file_system/block.c
-    src/file_system/bitmap.c
-    src/file_system/data.c
-    src/file_system/directory.c
-    src/file_system/disk.c
-    src/file_system/file_system.c
-    src/file_system/inode.c
-    src/file_system/pathname.c
+    src/fs/bitmap.c
+    src/fs/block.c
+    src/fs/data.c
+    src/fs/directory.c
+    src/fs/disk.c
+    src/fs/file.c
+    src/fs/fs.c
+    src/fs/inode.c
+    src/fs/pathname.c
     src/memory/memory.c
     src/memory/frame_store.c
     src/memory/variable_store.c

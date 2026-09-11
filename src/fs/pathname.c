@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "directory.h"
-#include "file_system.h"
+#include "fs.h"
 #include "inode.h"
 
 int resolve(struct inode* out, char* path, bool parent, char* name);
@@ -46,13 +46,14 @@ int resolve(struct inode* out, char* path, bool parent, char* name) {
         }
     } else {
         // TODO: implement relative path handling
-        fprintf(stderr, "Warning: relative path handling not implemented\n");
+        fprintf(stderr,
+                "[pathname] error: relative path handling not implemented\n");
         return -1;
     }
 
     while ((path = consume(path, name)) != NULL) {
         // not a dir
-        if (curr.file_type != DIRECTORY_T) {
+        if (curr.type != DIRECTORY_T) {
             return -1;
         }
 

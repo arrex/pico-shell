@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include "file_system.h"
+#include "fs.h"
 
 typedef uint8_t block[BLOCK_SIZE];
 

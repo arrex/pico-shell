@@ -1,6 +1,6 @@
 #pragma once
 
-#include "file_system.h"
+#include "fs.h"
 
 #define DISK_SIZE (NUM_BLOCKS * BLOCK_SIZE)
 
