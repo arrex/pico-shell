@@ -4,7 +4,7 @@
 
 #include "bitmap.h"
 #include "block.h"
-#include "file_system.h"
+#include "fs.h"
 
 static int data_bitmap_find_free();
 static int data_bitmap_alloc(int dnum);

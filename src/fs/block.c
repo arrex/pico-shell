@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "disk.h"
-#include "file_system.h"
+#include "fs.h"
 
 /*
  * reads a specified block on disk.

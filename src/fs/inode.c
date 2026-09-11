@@ -9,7 +9,7 @@
 #include "bitmap.h"
 #include "block.h"
 #include "data.h"
-#include "file_system.h"
+#include "fs.h"
 
 static int inode_bitmap_find_free();
 static int inode_bitmap_alloc(int inum);
@@ -149,7 +149,8 @@ int inode_update(const struct inode* inode, int inum) {
 int inode_datamap(struct inode* inode, int n) {
     int dnum;
 
-    if ((dnum = inode->addrs[n]) == 0) {
+    // if direct ptr invalid, then need to alloc a new block
+    if ((dnum = inode->addrs[n]) == -1) {
         if ((dnum = data_alloc()) == -1) {
             return -1;
         }

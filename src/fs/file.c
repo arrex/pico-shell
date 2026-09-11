@@ -4,7 +4,7 @@
 
 #include "block.h"
 #include "data.h"
-#include "file_system.h"
+#include "fs.h"
 #include "inode.h"
 #include "stdio.h"
 

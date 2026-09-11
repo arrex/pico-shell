@@ -5,13 +5,19 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../file_system/file_system.h"
+#include "../fs/fs.h"
 #include "../memory/lru.h"
 #include "../memory/memory.h"
 #include "../scheduling/ready_queue.h"
 #include "interpreter.h"
 
 int main(int argc, char* argv[]) {
+    // TODO: update memory api to return status code
+    mem_init();
+    if (fs_init() != 0) {
+        exit(99);
+    }
+
     // Set stdout to unbuffered to avoid undefined printing behaviour in batch
     // mode
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -36,11 +42,6 @@ int main(int argc, char* argv[]) {
     // Init user input
     for (int i = 0; i < MAX_USER_INPUT; i++) {
         userInput[i] = '\0';
-    }
-
-    mem_init();
-    if (fs_init() != 0) {
-        exit(99);
     }
 
     while (1) {

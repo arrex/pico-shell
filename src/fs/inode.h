@@ -1,5 +1,7 @@
 #pragma once
 
+#include "fs.h"
+
 #define ROOT_INODE 0
 #define NUM_INODES 80  // 16 inodes/block w 5 blocks
 #define NDIRECT 12     // num of direct ptrs
