@@ -1,17 +1,15 @@
 #include <stdbool.h>
 
+#include "../types/types.h"
 #include "file_system.h"
 
 typedef struct dirent {
     bool valid;
-    char filename[MAX_FILENAME_LEN];
-    int inode;
+    char name[MAX_FILENAME_LEN];
+    int inum;
 } dirent;
 
-// forward decls
-struct inode;
-
-int dir_lookup(int inode_num, const char* filename);
-int dir_is_empty(int inum);
-int dir_add(int inode_num, struct dirent* new_dirent);
-int dir_remove(int inode_num, const char* filename);
+int dir_lookup(uint inum, const char* name);
+int dir_empty(uint inum);
+int dir_add(uint inum, const struct dirent* dirent);
+int dir_remove(uint inum, const char* name);
