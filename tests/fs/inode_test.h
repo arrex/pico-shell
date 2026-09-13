@@ -1,5 +1,5 @@
 // INODE_ALLOC
-void test_inode_alloc_allocates_first_free_slot(void);
+void test_inode_alloc_can_allocate_all_slots(void);
 void test_inode_alloc_uses_lowest_available_slot(void);
 void test_inode_alloc_preserves_existing_inode_entries(void);
 void test_inode_alloc_crosses_inode_table_block_boundary(void);
@@ -12,6 +12,6 @@ void test_inode_free_invalid_inputs(void);
 // INODE_READ
 void test_inode_read_reads_inode_at_requested_slot(void);
 void test_inode_read_invalid_inputs(void);
-// INODE_WRITE
-void test_inode_write(void);
-void test_inode_write_invalid_inputs(void);
+// INODE_UPDATE
+void test_inode_update(void);
+void test_inode_update_invalid_inputs(void);

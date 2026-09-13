@@ -1,20 +1,21 @@
 # file system tests
-set(FILE_SYSTEM_TEST "${PROJECT_NAME}_file_system_tests")
+set(FILE_SYSTEM_TEST "${PROJECT_NAME}_fs_tests")
 
 add_executable(${FILE_SYSTEM_TEST}
   # src files
-  ${PROJECT_SOURCE_DIR}/src/file_system/block.c
-  ${PROJECT_SOURCE_DIR}/src/file_system/disk.c
-  ${PROJECT_SOURCE_DIR}/src/file_system/inode.c
-  ${PROJECT_SOURCE_DIR}/src/file_system/data_block.c
+  ${PROJECT_SOURCE_DIR}/src/fs/bitmap.c
+  ${PROJECT_SOURCE_DIR}/src/fs/data.c
+  ${PROJECT_SOURCE_DIR}/src/fs/block.c
+  ${PROJECT_SOURCE_DIR}/src/fs/disk.c
+  ${PROJECT_SOURCE_DIR}/src/fs/inode.c
   ${PROJECT_SOURCE_DIR}/src/utils/utils.c
   # unit test files
-  file_system/block_test.c
-  file_system/disk_test.c
-  file_system/inode_test.c
-  file_system/data_block_test.c
+  fs/block_test.c
+  fs/disk_test.c
+  fs/inode_test.c
+  fs/data_test.c
   # runner test file
-  file_system/file_system_test_runner.c
+  fs/test_runner.c
 )
 
 target_compile_definitions(${FILE_SYSTEM_TEST} PRIVATE PICOSHELL_TESTING)

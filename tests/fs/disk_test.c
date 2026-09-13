@@ -1,4 +1,4 @@
-#include "../../src/file_system/disk.h"
+#include "../../src/fs/disk.h"
 
 #include <stdint.h>
 #include <string.h>
