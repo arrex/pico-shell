@@ -10,6 +10,15 @@
 
 #define min(a, b) ((a < b) ? (a) : (b))
 
+/*
+ * reads a chunk of bytes from a file. if read exceeds file size, it stops
+ * reading and returns the numbesr of bytes read so far. examples include
+ * reading over the file's allocated size and reading across the file system's
+ * max file size boundary.
+ *
+ * returns the number of bytes read in cases of success or as soon as it hits
+ * the file size's upper bound, -1 otherwise.
+ */
 int file_read(struct inode* inode, char* buf, int offset, int byte_count) {
     if (inode == NULL) {
         fprintf(stderr, "[file] error: inode pointer cannot be NULL\n");
@@ -43,7 +52,12 @@ int file_read(struct inode* inode, char* buf, int offset, int byte_count) {
          read += chunk_size, buf += chunk_size, offset += chunk_size) {
         // calculate which addr to access
         uint addr = offset / BLOCK_SIZE;
-        uint dnum = inode_datamap(inode, addr);
+        uint dnum = inode->addrs[addr];
+
+        if (dnum == -1) {
+            return read;
+        }
+
         block block;
         if (data_read(&block, dnum) != 0) {
             return -1;
@@ -51,7 +65,7 @@ int file_read(struct inode* inode, char* buf, int offset, int byte_count) {
 
         // calculate chunk size and read into buf
         chunk_size = min(byte_count - read, BLOCK_SIZE - offset % BLOCK_SIZE);
-        memcpy(buf, block + offset % BLOCK_SIZE, chunk_size);
+        memcpy(buf, &block[offset % BLOCK_SIZE], chunk_size);
     }
 
     return byte_count;
@@ -105,7 +119,7 @@ int file_write(struct inode* inode, char* buf, uint offset, uint byte_count) {
         // calculate size of chunk we can right to curr block
         chunk_size =
             min(byte_count - written, BLOCK_SIZE - offset % BLOCK_SIZE);
-        memcpy(&block + offset % BLOCK_SIZE, buf, chunk_size);
+        memcpy(&block[offset % BLOCK_SIZE], buf, chunk_size);
 
         // write block back
         if (data_update(&block, dnum) != 0) {

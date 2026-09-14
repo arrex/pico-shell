@@ -1,0 +1,10 @@
+// FILE_WRITE
+void test_file_write_with_and_without_offset(void);
+void test_file_write_can_write_to_entire_address_space(void);
+void test_file_write_with_zero_byte_write(void);
+void test_file_write_invalid_inputs(void);
+// FILE_READ
+void test_file_read_round_trip(void);
+void test_file_read_can_read_from_entire_address_space(void);
+void test_file_read_with_zero_byte_read(void);
+void test_file_read_invalid_inputs(void);

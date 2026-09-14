@@ -2,11 +2,11 @@
 
 #include "unity.h"
 
-struct inode INODE1 = {
+static struct inode INODE1 = {
     .type = DIRECTORY_T,
 };
 
-struct inode INODE2 = {
+static struct inode INODE2 = {
     .type = FILE_T,
 };
 

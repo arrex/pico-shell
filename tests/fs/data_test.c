@@ -2,8 +2,8 @@
 
 #include "unity.h"
 
-block DATA1 = {"hello world"};
-block DATA2 = {1, 2, 3, 4, 5};
+static block DATA1 = {"hello world"};
+static block DATA2 = {1, 2, 3, 4, 5};
 
 /*
  * === DATA_ALLOC ===

@@ -2,6 +2,7 @@
 #include "block_test.h"
 #include "data_test.h"
 #include "disk_test.h"
+#include "file_test.h"
 #include "inode_test.h"
 #include "unity_internals.h"
 
@@ -55,6 +56,16 @@ int main(void) {
     RUN_TEST(test_data_read_invalid_inputs);
     RUN_TEST(test_data_update_updates_only_requested_block);
     RUN_TEST(test_data_update_invalid_inputs);
+
+    // file layer tests
+    RUN_TEST(test_file_write_with_and_without_offset);
+    RUN_TEST(test_file_write_can_write_to_entire_address_space);
+    RUN_TEST(test_file_write_with_zero_byte_write);
+    RUN_TEST(test_file_write_invalid_inputs);
+    RUN_TEST(test_file_read_round_trip);
+    RUN_TEST(test_file_read_can_read_from_entire_address_space);
+    RUN_TEST(test_file_read_with_zero_byte_read);
+    RUN_TEST(test_file_read_invalid_inputs);
 
     return UNITY_END();
 }
