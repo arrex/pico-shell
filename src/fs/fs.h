@@ -23,6 +23,8 @@
 #define MAX_FILENAME_LEN 59
 #define MAX_EXTENTS 4
 
+enum file_type;
+
 // file system components
 typedef struct superblock {
     char fs_type[sizeof(FS_TYPE)];
