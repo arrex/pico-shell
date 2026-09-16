@@ -9,6 +9,7 @@ add_executable(${FILE_SYSTEM_TEST}
   ${PROJECT_SOURCE_DIR}/src/fs/disk.c
   ${PROJECT_SOURCE_DIR}/src/fs/inode.c
   ${PROJECT_SOURCE_DIR}/src/fs/file.c
+  ${PROJECT_SOURCE_DIR}/src/fs/directory.c
   ${PROJECT_SOURCE_DIR}/src/utils/utils.c
   # unit test files
   fs/block_test.c
@@ -16,6 +17,7 @@ add_executable(${FILE_SYSTEM_TEST}
   fs/inode_test.c
   fs/data_test.c
   fs/file_test.c
+  fs/directory_test.c
   # runner test file
   fs/test_runner.c
 )

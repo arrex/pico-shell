@@ -109,6 +109,8 @@ int dir_add(uint inum, const struct dirent* new_dirent) {
         return -1;
     }
 
+    // TODO: validate dirent name (validate no slashes, etc.)
+
     if (inum >= NUM_INODES) {
         fprintf(stderr, "[directory] error: inode number %d is out of bounds\n",
                 inum);
@@ -153,7 +155,7 @@ int dir_add(uint inum, const struct dirent* new_dirent) {
 
     // did not find any holes in inode's allocated space
     // write at offset, this file layer will alloc space
-    if (file_write(&inode, (char*)&new_dirent, offset, sizeof(dirent)) !=
+    if (file_write(&inode, (char*)new_dirent, offset, sizeof(dirent)) !=
         sizeof(dirent)) {
         return -1;
     }
@@ -224,8 +226,4 @@ int dir_remove(uint inum, const char* name) {
             "[directory] error: filename %s does not exist in directory\n",
             name);
     return -1;
-
-    // TODO: for now, we leave the deleted entry as a hole. in the future, maybe
-    // we will implement compaction to optimize the space used and free up some
-    // data blocks if we can.
 }
