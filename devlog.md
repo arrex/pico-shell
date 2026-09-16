@@ -1,3 +1,11 @@
+### [2026-09-16]
+decided to take a step back and re-evaluate the contracts of each layer in the file system.
+created a new file layer abstraction that simplified higher-level layers (directory and 
+everything above) by a lot.
+
+also added contract validation for each layer by writing more unit tests. testing code feels
+super slop right now, but the point is to have some form of validation. 
+
 ### [2026-08-26]
 in the middle of writing the file system component for this project. this task turned
 out to be a lot harder than i thought. the foundational layers of the file system are
