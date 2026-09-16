@@ -1,6 +1,7 @@
 #include "../../src/fs/disk.h"
 #include "block_test.h"
 #include "data_test.h"
+#include "directory_test.h"
 #include "disk_test.h"
 #include "file_test.h"
 #include "inode_test.h"
@@ -66,6 +67,22 @@ int main(void) {
     RUN_TEST(test_file_read_can_read_from_entire_address_space);
     RUN_TEST(test_file_read_with_zero_byte_read);
     RUN_TEST(test_file_read_invalid_inputs);
+
+    // directory layer tests
+    RUN_TEST(test_dir_lookup_finds_entry);
+    RUN_TEST(test_dir_lookup_detects_missing);
+    RUN_TEST(test_dir_lookup_skips_invalid_entries);
+    RUN_TEST(test_dir_lookup_invalid_inputs);
+    RUN_TEST(test_dir_empty_returns_true_for_no_entries);
+    RUN_TEST(test_dir_empty_returns_true_for_dot_entries);
+    RUN_TEST(test_dir_empty_returns_false_for_dir_with_entry);
+    RUN_TEST(test_dir_add_fails_when_full);
+    RUN_TEST(test_dir_add_fills_first_hole);
+    RUN_TEST(test_dir_add_detects_duplicates);
+    RUN_TEST(test_dir_add_invalid_inputs);
+    RUN_TEST(test_dir_remove_rejects_missing_entry);
+    RUN_TEST(test_dir_remove_ignores_removed_entries);
+    RUN_TEST(test_dir_remove_invalid_inputs);
 
     return UNITY_END();
 }
